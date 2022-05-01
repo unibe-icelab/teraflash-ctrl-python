@@ -7,6 +7,7 @@ import time
 import serial
 import pandas as pd
 from interface import TopticaSocket
+from matplotlib.widgets import Slider, Button
 
 
 class MyDataClass():
@@ -18,10 +19,27 @@ class MyDataClass():
         self.freq_amp = []
 
 
+class CallbackClass():
+    def __init__(self):
+        self.i = 0
+
+    def nxt(self):
+        self.i += 1
+        print(self.i)
+
+    def prev(self):
+        self.i -= 1
+        print(self.i)
+
+    def update(self, val):
+        self.i = val
+
+
 class MyPlotClass():
 
-    def __init__(self, dataClass):
+    def __init__(self, dataClass, cb):
         self._dataClass = dataClass
+        self.cb = cb
         plt.style.use('dark_background')
         fig, (self.ax1, self.ax2) = plt.subplots(2, 1)
 
@@ -31,7 +49,17 @@ class MyPlotClass():
         self.ax1.set_ylabel("amplitude [db]")
         self.ax2.set_xlabel("frequency [THz]")
         self.ax2.set_ylabel("amplitude [a.u.]")
-        plt.tight_layout()
+        # bnext = Button(self.ax3, 'Next')
+        # bnext.on_clicked(self.cb.nxt())
+        slider_ax = fig.add_axes([0.13, 0, 0.3, 0.02])
+
+        self.freq_slider = Slider(
+            ax=slider_ax,
+            label='Frequency [Hz]',
+            valmin=0.1,
+            valmax=30,
+            valinit=0,
+        )
         self.ani = FuncAnimation(plt.gcf(), self.run, interval=1, repeat=True)
 
     def run(self, i):
@@ -70,8 +98,9 @@ class MyDataFetchClass(threading.Thread):
             time.sleep(0.1)
 
 
+callback = CallbackClass()
 data = MyDataClass()
-plotter = MyPlotClass(data)
+plotter = MyPlotClass(data, callback)
 fetcher = MyDataFetchClass(data)
 try:
     fetcher.start()
