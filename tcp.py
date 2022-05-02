@@ -1,10 +1,7 @@
-import numpy as np
 import os
 import time
 import platform
 from thz_pulse import pulse
-from scipy.fft import rfft, rfftfreq
-import matplotlib.pyplot as plt
 import socket
 import subprocess  # For executing a shell command
 
@@ -34,6 +31,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         # payload = b"SYSTEM : TELL STATUS"
         conn.send(payload) #, socket.MSG_OOB | socket.MSG_DONTROUTE)
         while True:
-            data = conn.recv(1026)
+            data = conn.recv(1024)
             if not data:
-                pass
+                continue
+            print(data)
