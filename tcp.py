@@ -1,9 +1,4 @@
-import os
-import time
-import platform
-from thz_pulse import pulse
 import socket
-import subprocess  # For executing a shell command
 import logging
 
 
@@ -23,7 +18,7 @@ class TCPserver:
             (b'\x0f', "MOTION : NORMAL"),
             (b'\x16', "TRANSMISSION : SLIDING"),
             (b'\x11', "SYSTEM : TIA ATN2"),
-            (b'\x1a', "ACQUISITION : BEGIN 1000.0"),
+            (b'\x1a', "ACQUISITION : BEGIN 1000.00"),
             (b'\x17', "ACQUISITION : AVERAGE 2"),
             (b'\x12', "ACQUISITION : STOP"),
             (b'\x18', "ACQUISITION : RANGE 0.00"),
