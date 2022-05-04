@@ -41,6 +41,7 @@ class TCPserver:
             data = client.recv(length)
             if data:
                 logging.debug("Received: " + data.decode("utf-8", "ignore"))
+                logging.debug(data[len(self.r_stat_header):].decode("utf-8", "ignore"))
                 if "OK" in data.decode("utf-8", "ignore"):
                     return
 
