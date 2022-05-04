@@ -1,24 +1,26 @@
 import socket
 import logging
-
+import time
 
 class TCPserver:
 
     def __init__(self):
-        logging.basicConfig(filename='logs/tcp.log', encoding='utf-8', level=logging.DEBUG)
+        logging.basicConfig(filename='logs/tcp.log', level=logging.DEBUG)
+        logging.getLogger().addHandler(logging.StreamHandler())
         self.gateway_address = ('169.254.84.101', 6341)
+        #self.gateway_address = ('localhost', 6341)
 
-        self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
+        self.send_header   = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
-        self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00'
+        self.r_dat_header  = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00'
 
-        self.cmds = [
+        self.setup_cmds = [
             (b'\x14', "SYSTEM : TELL STATUS"),
             (b'\x0b', "CHANNEL : D"),
             (b'\x0f', "MOTION : NORMAL"),
             (b'\x16', "TRANSMISSION : SLIDING"),
             (b'\x11', "SYSTEM : TIA ATN2"),
-            (b'\x1a', "ACQUISITION : BEGIN 1000.00"),
+            (b'\x1a', "ACQUISITION : BEGIN 1000.0"),
             (b'\x17', "ACQUISITION : AVERAGE 2"),
             (b'\x12', "ACQUISITION : STOP"),
             (b'\x18', "ACQUISITION : RANGE 0.00"),
@@ -42,13 +44,14 @@ class TCPserver:
 
     def run(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(5.0)
             s.bind(self.gateway_address)
             logging.info(f"Starting server at address {self.gateway_address}")
             s.listen()
             client, addr = s.accept()
             logging.debug(f"Connected by client with address {addr}")
             with client:
-                for cmd in self.cmds:
+                for cmd in self.setup_cmds:
                     b, c = cmd
                     logging.debug(f"Sending: {b} {c}")
                     message = self.send_header + b + c.encode()
