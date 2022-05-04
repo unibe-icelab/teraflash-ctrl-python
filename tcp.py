@@ -4,11 +4,13 @@ import platform
 from thz_pulse import pulse
 import socket
 import subprocess  # For executing a shell command
+import logging
 
 
 class TCPserver:
 
     def __init__(self):
+        logging.basicConfig(filename='logs/tcp.log', encoding='utf-8', level=logging.DEBUG)
         self.gateway_address = ('169.254.84.101', 6341)
 
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
@@ -38,24 +40,25 @@ class TCPserver:
         while True:
             data = client.recv(length)
             if data:
-                print(data.decode("utf-8", "ignore"))
+                logging.debug("Received: " + data.decode("utf-8", "ignore"))
                 if "OK" in data.decode("utf-8", "ignore"):
                     return
 
     def run(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind(self.gateway_address)
+            logging.info(f"Starting server at address {self.gateway_address}")
             s.listen()
-            conn, addr = s.accept()
-            print(f"Connected by {addr}")
-            with conn:
+            client, addr = s.accept()
+            logging.debug(f"Connected by client with address {addr}")
+            with client:
                 for cmd in self.cmds:
                     b, c = cmd
-                    print(f"sending: {b} {c}")
+                    logging.debug(f"Sending: {b} {c}")
                     message = self.send_header + b + c.encode()
-                    conn.send(message)
-                    self.wait_for_answer(conn)
-                self.wait_for_answer(conn, 2048)
+                    client.send(message)
+                    self.wait_for_answer(client)
+                self.wait_for_answer(client, 2048)
                 return
 
 
