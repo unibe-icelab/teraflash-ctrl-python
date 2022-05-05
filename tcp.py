@@ -8,11 +8,11 @@ class TCPserver:
         logging.basicConfig(filename='logs/tcp.log', level=logging.DEBUG)
         logging.getLogger().addHandler(logging.StreamHandler())
         self.gateway_address = ('169.254.84.101', 6341)
-        #self.gateway_address = ('localhost', 6341)
+        # self.gateway_address = ('localhost', 6341)
 
-        self.send_header   = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
+        self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
-        self.r_dat_header  = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00'
+        self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00'
 
         self.setup_cmds = [
             (b'\x14', "SYSTEM : TELL STATUS"),
@@ -20,14 +20,13 @@ class TCPserver:
             (b'\x0f', "MOTION : NORMAL"),
             (b'\x16', "TRANSMISSION : SLIDING"),
             (b'\x11', "SYSTEM : TIA ATN2"),
-            (b'\x1a', "ACQUISITION : BEGIN 1000.0"),
+            (b'\x1a', "ACQUISITION : BEGIN 2070.0"),
             (b'\x17', "ACQUISITION : AVERAGE 2"),
             (b'\x12', "ACQUISITION : STOP"),
             (b'\x18', "ACQUISITION : RANGE 0.00"),
             (b'\x17', "ACQUISITION : RESET AVG"),
             (b'\x19', "ACQUISITION : RANGE 50.00"),
             (b'\x12', "SYSTEM : MONITOR 1"),
-            (b'\x11', "MON 1: -0.024058"),
             (b'\x0a', "LASER : ON"),
             (b'\x0a', "VOLT1 : ON"),
             (b'\x13', "ACQUISITION : START"),
@@ -40,25 +39,29 @@ class TCPserver:
                 logging.debug("Received: " + data.decode("utf-8", "ignore"))
                 logging.debug(data[len(self.r_stat_header):].decode("utf-8", "ignore"))
                 if "OK" in data.decode("utf-8", "ignore"):
-                    return
+                    return 1
+                elif "MON" in data.decode("utf-8", "ignore"):
+                    return 1
+            else:
+                logging.error("Client termianted with FIN.")
+                return 0
 
     def run(self):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(5.0)
             s.bind(self.gateway_address)
             logging.info(f"Starting server at address {self.gateway_address}")
             s.listen()
             client, addr = s.accept()
             logging.debug(f"Connected by client with address {addr}")
-            with client:
-                for cmd in self.setup_cmds:
-                    b, c = cmd
-                    logging.debug(f"Sending: {b} {c}")
-                    message = self.send_header + b + c.encode()
-                    client.send(message)
-                    self.wait_for_answer(client)
-                self.wait_for_answer(client, 2048)
-                return
+            for cmd in self.setup_cmds:
+                b, c = cmd
+                logging.debug(f"Sending: {b} {c}")
+                message = self.send_header + b + c.encode()
+                client.send(message)
+                if self.wait_for_answer(client) == 0:
+                    return
+            self.wait_for_answer(client, 2048)
+            return
 
 
 if __name__ == "__main__":
