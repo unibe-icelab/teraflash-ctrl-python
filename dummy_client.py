@@ -6,11 +6,10 @@ import threading
 class TCPclient:
 
     def __init__(self):
-        logging.basicConfig(filename='logs/tcp_client.log', level=logging.DEBUG)
-        logging.getLogger().addHandler(logging.StreamHandler())
         self.config_address = ('localhost', 6341)
         self.data_address = ('localhost', 6342)
         self.stream = False
+        self.running = True
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00'
@@ -86,24 +85,25 @@ class TCPclient:
         config_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         config_socket.connect(self.config_address)
         response = config_socket.recv(1024)
-        while True:
+        while self.running:
             if response:
-                logging.debug(f"client received: {response}")
-                logging.debug(f"client sends: {self.replies[response]}")
                 config_socket.send(bytes.fromhex(self.replies[response]))
-                if response == bytes.fromhex("cdef1234789afedc0000000200000000000000134143515549534954494f4e203a205354415254"):
-                    logging.info("sending data stream!")
+                if response == bytes.fromhex(
+                        "cdef1234789afedc0000000200000000000000134143515549534954494f4e203a205354415254"):
+                    logging.debug("sending data stream!")
                     self.stream = True
             response = config_socket.recv(1024)
+        config_socket.close()
 
     def run_stream(self):
         stream_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         stream_socket.connect(self.data_address)
-        while True:
+        while self.running:
             if self.stream:
                 for packet in self.data:
                     stream_socket.send(bytes.fromhex(packet))
-                #return
+                # return
+        stream_socket.close()
 
 
 if __name__ == "__main__":
