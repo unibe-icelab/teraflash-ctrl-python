@@ -3,7 +3,8 @@ from matplotlib.animation import FuncAnimation
 import numpy as np
 import threading
 from interface import TopticaDataSocket, TopticaConfigSocket
-from matplotlib.widgets import Slider, Button
+from matplotlib.widgets import Slider, Button, TextBox, RadioButtons
+import matplotlib.image as mpimg
 from dummy_client import TCPclient
 import logging
 import time
@@ -13,12 +14,16 @@ class MyDataClass():
 
     def __init__(self):
         self.time = np.zeros(1000)
+
         self.signal_1 = np.zeros(1000)
         self.freq_1 = np.zeros(1000)
         self.freq_1_amp = np.zeros(1000)
         self.ref_1 = np.zeros(1000)
+
         self.signal_2 = np.zeros(1000)
         self.ref_2 = np.zeros(1000)
+        self.freq_2 = np.zeros(1000)
+        self.freq_2_amp = np.zeros(1000)
 
 
 class CallbackClass():
@@ -27,11 +32,9 @@ class CallbackClass():
 
     def nxt(self):
         self.i += 1
-        print(self.i)
 
     def prev(self):
         self.i -= 1
-        print(self.i)
 
     def update(self, val):
         self.i = val
@@ -43,7 +46,8 @@ class MyPlotClass():
         self._dataClass = dataClass
         self.cb = cb
         plt.style.use('dark_background')
-        fig, (self.ax1, self.ax2) = plt.subplots(2, 1)
+        fig, (self.ax1, self.ax2) = plt.subplots(2, 1, figsize=(12, 7))
+        plt.subplots_adjust(right=0.5)
 
         self.h1Line, = self.ax1.plot(0, 0, label="pulse", color="red")
         self.h2Line, = self.ax2.semilogy(0, 0, label="frequencies", color="red")
@@ -51,16 +55,33 @@ class MyPlotClass():
         self.ax1.set_ylabel("amplitude [db]")
         self.ax2.set_xlabel("frequency [THz]")
         self.ax2.set_ylabel("amplitude [a.u.]")
-        # bnext = Button(self.ax3, 'Next')
-        # bnext.on_clicked(self.cb.nxt())
-        slider_ax = fig.add_axes([0.13, 0, 0.3, 0.02])
+
+        button_ax = fig.add_axes([0.8, 0.7, 0.1, 0.05])
+        bset = Button(button_ax, 'set', color="gray")
+        # bset.connect_event("button_press_event", click)
+
+        text_ax = fig.add_axes([0.65, 0.7, 0.1, 0.05])
+        text_box = TextBox(text_ax, 'begin [ps] ', initial="1000", color="black")
+        #text_box.on_submit(submit)
+
+        slider_ax = fig.add_axes([0.65, 0.8, 0.28, 0.02])
+
+        toptica_ax = fig.add_axes([0.7, 0.1, 0.3, 0.1])
+        toptica = mpimg.imread('hacktica_inv.png')
+        toptica_ax.imshow(toptica)
+        toptica_ax.set_axis_off()
+
+        wp_ax = fig.add_axes([0.5, 0.1, 0.3, 0.1])
+        wp = mpimg.imread('WP-Logo.png')
+        wp_ax.imshow(wp)
+        wp_ax.set_axis_off()
 
         self.freq_slider = Slider(
             ax=slider_ax,
-            label='Frequency [Hz]',
-            valmin=0.1,
-            valmax=30,
-            valinit=0,
+            label='Range [ps] ',
+            valmin=5,
+            valmax=200,
+            valinit=50,
         )
         self.ani = FuncAnimation(plt.gcf(), self.run, interval=1, repeat=True)
 

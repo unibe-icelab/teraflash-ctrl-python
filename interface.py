@@ -21,7 +21,7 @@ class TopticaConfigSocket:
             (b'\x0f', "MOTION : NORMAL"),
             (b'\x16', "TRANSMISSION : SLIDING"),
             (b'\x11', "SYSTEM : TIA ATN2"),
-            #(b'\x1a', "ACQUISITION : BEGIN 1070.0"),
+            # (b'\x1a', "ACQUISITION : BEGIN 1070.0"),
             (b'\x1a', "ACQUISITION : BEGIN 1000.0"),
             (b'\x17', "ACQUISITION : AVERAGE 2"),
             (b'\x12', "ACQUISITION : STOP"),
@@ -133,9 +133,9 @@ class TopticaDataSocket:
                 try:
                     types = types.newbyteorder('>')
                     arr = np.frombuffer(data, dtype=types)
-                    self._dataclass.signal_1 = arr['signal_1']
+                    self._dataclass.signal_1 = (arr['signal_1'] - arr['signal_1'][0]) / 20
                     self._dataclass.ref_1 = arr['ref_1']
-                    self._dataclass.signal_2 = arr['signal_2']
+                    self._dataclass.signal_2 = (arr['signal_2'] - arr['signal_2'][0]) / 20
                     self._dataclass.ref_2 = arr['ref_2']
 
                     t = self._dataclass.time
