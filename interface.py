@@ -26,8 +26,8 @@ class TopticaConfigSocket:
             (b'\x0f', "MOTION : NORMAL"),
             (b'\x16', "TRANSMISSION : SLIDING"),
             (b'\x11', "SYSTEM : TIA ATN2"),
-            # (b'\x1a', "ACQUISITION : BEGIN 2070.0"),
-            (b'\x1a', "ACQUISITION : BEGIN 1000.0"),
+            (b'\x1a', "ACQUISITION : BEGIN 2070.0"),
+            # (b'\x1a', "ACQUISITION : BEGIN 1000.0"),
             (b'\x17', "ACQUISITION : AVERAGE 2"),
             (b'\x12', "ACQUISITION : STOP"),
             (b'\x18', "ACQUISITION : RANGE 0.00"),
@@ -40,7 +40,7 @@ class TopticaConfigSocket:
         ]
 
         ip = "169.254.84.101"
-        ip = "localhost"
+        # ip = "localhost"
         self.config_server_adress = (ip, 6341)
 
     def wait_for_answer(self, client, length=1024):
@@ -71,6 +71,12 @@ class TopticaConfigSocket:
                 client.send(message)
                 if self.wait_for_answer(client) == 0:
                     return
+            while True:
+                b, c = (b'\x12', "SYSTEM : MONITOR 1")
+                message = self.send_header + b + c.encode()
+                client.send(message)
+                if self.wait_for_answer(client) == 0:
+                    return
 
 
 class TopticaDataSocket:
@@ -80,7 +86,7 @@ class TopticaDataSocket:
         self._dataclass = dataclass
 
         ip = "169.254.84.101"
-        ip = "localhost"
+        # ip = "localhost"
         self.data_server_adress = (ip, 6342)
         if not self.ping(ip):
             raise Exception("[ERROR] ping timeout! Check LAN connection.")
