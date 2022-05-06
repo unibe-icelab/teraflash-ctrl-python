@@ -87,20 +87,23 @@ class TCPclient:
         config_socket.connect(self.config_address)
         response = config_socket.recv(1024)
         while True:
-            logging.debug(f"client received: {response}")
-            logging.debug(f"client sends: {self.replies[response]}")
-            config_socket.send(bytes.fromhex(self.replies[response]))
-            if response == "cdef1234789afedc0000000200000000000000134143515549534954494f4e203a205354415254":
-                self.stream = True
+            if response:
+                logging.debug(f"client received: {response}")
+                logging.debug(f"client sends: {self.replies[response]}")
+                config_socket.send(bytes.fromhex(self.replies[response]))
+                if response == bytes.fromhex("cdef1234789afedc0000000200000000000000134143515549534954494f4e203a205354415254"):
+                    logging.info("sending data stream!")
+                    self.stream = True
             response = config_socket.recv(1024)
 
     def run_stream(self):
-        config_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        config_socket.connect(self.config_address)
+        stream_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        stream_socket.connect(self.data_address)
         while True:
             if self.stream:
                 for packet in self.data:
-                    config_socket.send(bytes.fromhex(packet))
+                    stream_socket.send(bytes.fromhex(packet))
+                #return
 
 
 if __name__ == "__main__":
