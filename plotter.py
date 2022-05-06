@@ -6,17 +6,20 @@ import os
 import time
 import serial
 import pandas as pd
-from interface import TopticaSocket
+from interface import TopticaDataSocket, TopticaConfigSocket
 from matplotlib.widgets import Slider, Button
 
 
 class MyDataClass():
 
     def __init__(self):
-        self.pulse_time = []
-        self.pulse_db = []
-        self.freq = []
-        self.freq_amp = []
+        self.time = np.zeros(1000)
+        self.signal_1 = np.zeros(1000)
+        self.freq_1 = np.zeros(1000)
+        self.freq_1_amp = np.zeros(1000)
+        self.ref_1 = np.zeros(1000)
+        self.signal_2 = np.zeros(1000)
+        self.ref_2 = np.zeros(1000)
 
 
 class CallbackClass():
@@ -44,7 +47,7 @@ class MyPlotClass():
         fig, (self.ax1, self.ax2) = plt.subplots(2, 1)
 
         self.h1Line, = self.ax1.plot(0, 0, label="pulse", color="red")
-        self.h2Line, = self.ax2.plot(0, 0, label="frequencies", color="red")
+        self.h2Line, = self.ax2.semilogy(0, 0, label="frequencies", color="red")
         self.ax1.set_xlabel("time [ps]")
         self.ax1.set_ylabel("amplitude [db]")
         self.ax2.set_xlabel("frequency [THz]")
@@ -63,8 +66,9 @@ class MyPlotClass():
         self.ani = FuncAnimation(plt.gcf(), self.run, interval=1, repeat=True)
 
     def run(self, i):
-        self.h1Line.set_data(self._dataClass.pulse_time, self._dataClass.pulse_db)
-        self.h2Line.set_data(self._dataClass.freq, self._dataClass.freq_amp)
+        if len(self._dataClass.time) == len(self._dataClass.signal_1):
+            self.h1Line.set_data(self._dataClass.time, self._dataClass.signal_1)
+            self.h2Line.set_data(self._dataClass.freq_1, self._dataClass.freq_1_amp)
 
         self.ax1.relim()
         self.ax2.relim()
@@ -83,7 +87,7 @@ class MyDataFetchClass(threading.Thread):
         threading.Thread.__init__(self)
 
         # initialize serial port
-        self.socket = TopticaSocket()
+        self.socket = TopticaDataSocket()
         self._dataClass = dataClass
         self.running = True
 
@@ -99,13 +103,22 @@ class MyDataFetchClass(threading.Thread):
 
 
 callback = CallbackClass()
-data = MyDataClass()
-plotter = MyPlotClass(data, callback)
-fetcher = MyDataFetchClass(data)
+dataclass = MyDataClass()
+plotter = MyPlotClass(dataclass, callback)
+# fetcher = MyDataFetchClass(data)
+
+dat = TopticaDataSocket(dataclass)
+conf = TopticaConfigSocket(dataclass)
+
+fetcher = threading.Thread(target=dat.read)
+setter = threading.Thread(target=conf.run)
+
 try:
     fetcher.start()
+    setter.start()
     plt.show()
-    fetcher.running = False
+    # fetcher.running = False
 finally:
     fetcher.join()
+    setter.join()
     exit()
