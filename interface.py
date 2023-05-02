@@ -6,7 +6,6 @@ from scipy.fft import rfft, rfftfreq
 import socket
 import subprocess  # For executing a shell command
 import logging
-import queue
 
 
 class TopticaSocket:
@@ -20,6 +19,18 @@ class TopticaSocket:
         self.running = True
         self.status = ""
         self._data = data
+        if not self.ping(ip):
+            raise ConnectionError
+
+    @staticmethod
+    def ping(host):
+        res = False
+        ping_param = "-n" if platform.system().lower() == "windows" else "-c"
+        command = ['ping', ping_param, '1', host]
+        result = subprocess.call(command)
+        if result == 0:
+            res = True
+        return res
 
     def wait_for_answer(self, client, length=1024):
         while self.running:
@@ -67,16 +78,6 @@ class TopticaSocket:
                     if self.wait_for_answer(client) == 0:
                         return
                 time.sleep(0.25)
-
-    def ping(self, host):
-        res = False
-        ping_param = "-n" if platform.system().lower() == "windows" else "-c"
-        command = ['ping', ping_param, '1', host]
-        result = subprocess.call(command)
-        logging.debug(result)
-        if result == 0:
-            res = True
-        return res
 
     def run_tcp_dat(self):
         types = np.dtype([
