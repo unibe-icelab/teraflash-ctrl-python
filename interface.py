@@ -9,7 +9,7 @@ import logging
 
 
 class TopticaSocket:
-    def __init__(self, ip, data):
+    def __init__(self, ip, data, status):
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00'
@@ -17,7 +17,7 @@ class TopticaSocket:
         self.data_server_address = (ip, 6342)
         self.range = 50
         self.running = True
-        self.status = ""
+        self.status = status
         self._data = data
         if not self.ping(ip):
             raise ConnectionError

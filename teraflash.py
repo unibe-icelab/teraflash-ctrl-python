@@ -38,9 +38,10 @@ class TeraFlash:
         self.ip = ip
         self.cmd_queue = queue.Queue()
         self.data = DataContainer()
+        self.status = ""
 
         try:
-            socket = TopticaSocket(self.ip, self.data)
+            socket = TopticaSocket(self.ip, self.data, self.status)
         except ConnectionError:
             logging.error("[INIT] Device is not connected. Check cabling")
             return
