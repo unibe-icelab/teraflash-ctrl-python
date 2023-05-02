@@ -61,16 +61,12 @@ class TeraFlash:
         return self
 
     def __exit__(self, type, value, traceback):
-        logging.debug("[CMD] disconnecting from device")
-        self.set_acq_stop()
-        self.set_emitter(1, False)
-        self.set_emitter(2, False)
-        self.set_laser(False)
+        self.disconnect()
         time.sleep(1)
-        logging.debug("[CMD] disconnected from device")
+        logging.debug("[EXIT] disconnected from device")
 
     def setup(self):
-        logging.info("[CMD] setting up the device...")
+        logging.info("[INIT] setting up the device...")
         self.get_sys_status()
         self.get_sys_status()
         self.set_channel()
@@ -86,6 +82,14 @@ class TeraFlash:
         self.set_acq_range()
         self.get_sys_monitor()
         self.get_sys_status()
+        logging.info("[INIT] device is ready.")
+
+    def disconnect(self):
+        logging.debug("[CMD] disconnecting from device")
+        self.set_acq_stop()
+        self.set_emitter(1, False)
+        self.set_emitter(2, False)
+        self.set_laser(False)
 
     def get_sys_status(self):
         logging.debug("[CMD] requesting status")
