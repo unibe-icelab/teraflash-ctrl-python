@@ -39,16 +39,32 @@ class TeraFlash:
         self.cmd_queue = queue.Queue()
         self.data = DataContainer()
 
-        socket = TopticaSocket(self.ip, self.data)
+        try:
+            socket = TopticaSocket(self.ip, self.data)
+        except ConnectionError:
+            logging.error("[INIT] Device is not connected. Check cabling")
+            return
 
         # launch tcp config socket
         config_thread = threading.Thread(target=socket.run_conf_tcp, args=(self.cmd_queue,))
 
         # launch tcp data socket
-        data_thread = threading.Thread(target=socket.run_conf_tcp)
+        data_thread = threading.Thread(target=socket.run_tcp_dat)
 
         data_thread.start()
         config_thread.start()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        logging.debug("[CMD] disconnecting from device")
+        self.set_acq_stop()
+        self.set_emitter(1, False)
+        self.set_emitter(2, False)
+        self.set_laser(False)
+        time.sleep(1)
+        logging.debug("[CMD] disconnected from device")
 
     def setup(self):
         logging.info("[CMD] setting up the device...")
