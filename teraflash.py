@@ -55,6 +55,8 @@ class TeraFlash:
         data_thread.start()
         config_thread.start()
 
+        self.setup()
+
     def __enter__(self):
         return self
 
