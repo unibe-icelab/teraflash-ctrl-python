@@ -1,4 +1,4 @@
-# TeraFlash Python Package
+# TeraFlash Pro Python Package
 
 This code is developed by the University of Bern and is no official product of Toptica Photonics AG.  
 The TCP communication protocol is probably incomplete and features may be missing as it was reverse engineered using
@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
 ## Taking a measurement
 After connecting to the device, you can turn on the laser and then the emitter.
-After starting the acquisition, new data should be continously updated in `device.data`:
+After starting the acquisition, new data should be continuously updated in `device.data`:
 ```python
 from teraflash import TeraFlash
 
