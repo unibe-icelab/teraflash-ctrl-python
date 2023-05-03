@@ -144,11 +144,11 @@ class TeraFlash:
         """
         logging.debug(f"[CMD] setting acq begin: {t_begin}")
         if t_begin < 10:
-            b = b'0x18'
+            b = b'\x18'
         elif t_begin < 100:
-            b = b'0x19'
+            b = b'\x19'
         else:
-            b = b'0x1a'
+            b = b'\x1a'
         cmd = (b, f"ACQUISITION : BEGIN {t_begin:.1f}")
         self.cmd_queue.put(cmd)
 
@@ -181,11 +181,11 @@ class TeraFlash:
             t_range = self.nearest_entry(t_range, available_ranges)
         logging.debug(f"[CMD] setting acq range: {t_range}")
         if t_range <= 5.0:
-            b = b'0x18'
+            b = b'\x18'
         elif t_range <= 70.0:
-            b = b'0x19'
+            b = b'\x19'
         else:
-            b = b'0x1a'
+            b = b'\x1a'
         cmd = (b, f"ACQUISITION : RANGE {t_range:.2f}")
         self.cmd_queue.put(cmd)
 
@@ -197,13 +197,13 @@ class TeraFlash:
         """
         logging.debug(f"[CMD] setting acq avg: {avg}")
         if avg < 10:
-            b = b'0x17'
+            b = b'\x17'
         elif avg < 100:
-            b = b'0x18'
+            b = b'\x18'
         elif avg < 1000:
-            b = b'0x19'
+            b = b'\x19'
         else:
-            b = b'0x1a'
+            b = b'\x1a'
         cmd = (b, f"ACQUISITION : AVERAGE {avg}")
         self.cmd_queue.put(cmd)
 
@@ -213,7 +213,7 @@ class TeraFlash:
         """
         logging.debug("[CMD] resetting acq avg")
 
-        cmd = (b'0x17', "ACQUISITION : RESET AVG")
+        cmd = (b'\x17', "ACQUISITION : RESET AVG")
         self.cmd_queue.put(cmd)
 
     def set_laser(self, state: bool):
@@ -224,10 +224,10 @@ class TeraFlash:
         """
         if state:
             logging.debug("[CMD] setting laser on")
-            cmd = (b'0x0a', "LASER : ON")
+            cmd = (b'\x0a', "LASER : ON")
         else:
             logging.debug("[CMD] setting laser off")
-            cmd = (b'0x0b', "LASER : OFF")
+            cmd = (b'\x0b', "LASER : OFF")
         self.cmd_queue.put(cmd)
 
     def set_emitter(self, emitter: int, state: bool):
@@ -242,10 +242,10 @@ class TeraFlash:
             return
         if state:
             logging.debug(f"[CMD] setting emitter {emitter} on")
-            cmd = (b'0x0a', f"VOLT{emitter} : ON")
+            cmd = (b'\x0a', f"VOLT{emitter} : ON")
         else:
             logging.debug(f"[CMD] setting emitter {emitter} off")
-            cmd = (b'0x0b', f"VOLT{emitter} : OFF")
+            cmd = (b'\x0b', f"VOLT{emitter} : OFF")
         self.cmd_queue.put(cmd)
 
     def set_acq_start(self):
@@ -253,7 +253,7 @@ class TeraFlash:
             start the acquisition (data streaming)
         """
         logging.debug("[CMD] starting acquisition")
-        cmd = (b'0x13', "ACQUISITION : START")
+        cmd = (b'\x13', "ACQUISITION : START")
         self.cmd_queue.put(cmd)
 
     def set_acq_stop(self):
@@ -261,5 +261,5 @@ class TeraFlash:
             stop the acquisition (data streaming)
         """
         logging.debug("[CMD] stopping acquisition")
-        cmd = (b'0x12', "ACQUISITION : STOP")
+        cmd = (b'\x12', "ACQUISITION : STOP")
         self.cmd_queue.put(cmd)
