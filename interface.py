@@ -96,11 +96,15 @@ class TopticaSocket:
         """
         global status
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            # bind server to the address (only works when the address exists)
             s.bind(self.config_server_address)
             logging.info(f"[TCP CONF] Starting server at address {self.config_server_address}")
+            # wait for connections
             s.listen()
+            # accept connection from device
             client, addr = s.accept()
             logging.info(f"[TCP CONF] Connected by client with address {addr}")
+            # now we are connected
             self.connected.set()
 
             while self.running.is_set():
@@ -111,17 +115,21 @@ class TopticaSocket:
                 if cmd:
                     (b, s) = cmd
                     message = self.send_header + b + s.encode()
+                    # send command
                     client.send(message)
                     if b == b'\x14':
                         # if we request the status, save the response
                         status = client.recv(1024).decode("utf-8", "ignore")
                         self.cmd_ack.set()
                     elif "RANGE" in s:
+                        # if we change the range, also change it for the data thread
                         self.range = float(s[-6:])
+                        # wait for acknowledge
                         if not self.wait_for_answer(client):
                             return
                         self.cmd_ack.set()
                     else:
+                        # wait for acknowledge
                         if not self.wait_for_answer(client):
                             return
                         self.cmd_ack.set()
@@ -131,6 +139,7 @@ class TopticaSocket:
                     message = self.send_header + b + s.encode()
                     client.settimeout(1.0)
                     client.send(message)
+                    # wait for acknowledge
                     if not self.wait_for_answer(client):
                         return
                     client.settimeout(None)
@@ -148,44 +157,58 @@ class TopticaSocket:
             ("reserved_2", np.int16),
         ])
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            # bind server to the address (only works when the address exists)
             s.bind(self.data_server_address)
             logging.info(f"[TCP DAT] Starting server at address {self.data_server_address}")
+            # wait for connections
             s.listen()
+            # accept connection from device
             client, addr = s.accept()
             logging.info(f"[TCP DAT] Connected by client with address {addr}")
             old_range = self.range
+            # now we are connected
             while self.running.is_set():
                 if old_range != self.range:
                     # range has changed and needs to be adjusted
+                    # need to empty the read buffer
                     pass
 
                 old_range = self.range
 
+                # data always comes in the shape of 4 datasets each as 16bit ints with length of
+                # (20 * self.range + 1)
+                # the header is 52 8 bit ints and since we read 8 bit ints we need to multiply the data by 2
                 raw_data = client.recv(2 * 4 * (20 * self.range + 1) + 52)
 
                 if not raw_data:
                     continue
 
+                # check if header is at the beginning of the received payload
                 if raw_data[:len(self.r_dat_header)] == self.r_dat_header:
+                    # remove the header
                     data = raw_data[len(self.r_dat_header) + 47:]
                 else:
                     try:
+                        # split by the header and remove the header
                         data = raw_data.split(self.r_dat_header)[1][47:]
                     except IndexError:
                         continue
                 while True:
                     if not self.running.is_set():
                         break
+                    # check if the data is of the correct length
                     if len(data) != 2 * 4 * (20 * self.range + 1):
                         data = data + client.recv(2 * 4 * (20 * self.range + 1) - len(data))
                     else:
                         break
                 try:
+                    # decode received payload to 16 bit ints
                     types = types.newbyteorder('>')
                     arr = np.frombuffer(data, dtype=types)
                     data.signal_1 = arr['signal_1'] / 20.0 - arr['signal_1'][0] / 20.0
                     data.signal_2 = arr['signal_2'] / 20.0 - arr['signal_2'][0] / 20.0
 
+                    # do fft of signal 1
                     t = data.time
                     p = data.signal_1
                     sample_rate = len(t) / (t[-1] - t[0]) * 1e12
@@ -196,6 +219,7 @@ class TopticaSocket:
                     data.fft_1_amp = np.abs(a)
                     data.fft_1_phase = np.angle(a)
 
+                    # do fft of signal 2
                     p = data.signal_2
                     a = rfft(p)
                     data.fft_2_amp = np.abs(a)

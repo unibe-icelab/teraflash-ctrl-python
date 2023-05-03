@@ -33,25 +33,31 @@ class TeraFlash:
             logging.error("[INIT] Device is not connected. Check cabling")
             return
 
-        # launch tcp config socket
+        # configure tcp config socket
         self.config_thread = threading.Thread(target=socket.run_conf_tcp, args=(self.cmd_queue,))
 
-        # launch tcp data socket
+        # configure tcp data socket
         self.data_thread = threading.Thread(target=socket.run_tcp_dat)
 
+        # launch threads
         self.data_thread.start()
         self.config_thread.start()
 
+        # wait until a device is connected
         self.connected.wait()
+
+        # start setup sequence
         self.setup()
 
     def __enter__(self):
         return self
 
     def __exit__(self, type, value, traceback):
+        # disconnect routine
         self.disconnect()
         time.sleep(1)
         self.running.clear()
+        # if a device was connected, wait for the TCP threads to finish
         if self.connected.is_set():
             self.data_thread.join()
             self.config_thread.join()
@@ -59,15 +65,17 @@ class TeraFlash:
 
     @staticmethod
     def get_data():
+        # return global variable
         return interface.data
 
     @staticmethod
     def get_status():
+        # return global variable
         return interface.status
 
     def setup(self):
         """
-            performs the setup of the device as reconstructed
+            performs the setup sequence of the device as reconstructed
             by using wireshark on the official application
         """
 
