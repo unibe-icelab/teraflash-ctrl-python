@@ -14,12 +14,12 @@ if __name__ == "__main__":
     
     ip = "169.254.84.101"
     with TeraFlash(ip) as device:
-        print(device.status)
+        print(device.get_status())
 ```
 
 ## Taking a measurement
 After connecting to the device, you can turn on the laser and then the emitter.
-After starting the acquisition, new data should be continuously updated in `device.data`:
+After starting the acquisition, new data should be continuously updated and the most recent dataset can be obtained using `device.get_data()`:
 ```python
 from teraflash import TeraFlash
 
@@ -27,11 +27,11 @@ if __name__ == "__main__":
     
     ip = "169.254.84.101"
     with TeraFlash(ip) as device:
-        print(device.status)
+        print(device.get_status())
         device.set_laser(True)
         device.set_emitter(1, True)
         device.set_acq_start()
-        print(device.data)
+        print(device.get_data())
 ```
 
   

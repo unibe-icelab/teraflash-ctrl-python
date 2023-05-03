@@ -1,7 +1,6 @@
 from teraflash import TeraFlash
 
 if __name__ == "__main__":
-
     with TeraFlash() as device:
-        print(device.status)
-        print(device.data)
+        print(f"status: {device.get_status()}")
+        print(device.get_data().signal_1)

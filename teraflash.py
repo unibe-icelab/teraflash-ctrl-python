@@ -3,9 +3,8 @@ import queue
 import threading
 import time
 
-import numpy as np
-
-from interface import TopticaSocket, DataContainer
+from interface import TopticaSocket
+import interface
 
 
 class TeraFlash:
@@ -21,24 +20,29 @@ class TeraFlash:
 
         self.ip = ip
         self.cmd_queue = queue.Queue()
-        self.data = DataContainer()
-        self.status = ""
+        self.running = threading.Event()
+        self.connected = threading.Event()
+        self.cmd_ack = threading.Event()
+        self.cmd_ack.clear()
+        self.connected.clear()
+        self.running.set()
 
         try:
-            socket = TopticaSocket(self.ip, self.data, self.status)
+            socket = TopticaSocket(self.ip, self.running, self.connected, self.cmd_ack)
         except ConnectionError:
             logging.error("[INIT] Device is not connected. Check cabling")
             return
 
         # launch tcp config socket
-        config_thread = threading.Thread(target=socket.run_conf_tcp, args=(self.cmd_queue,))
+        self.config_thread = threading.Thread(target=socket.run_conf_tcp, args=(self.cmd_queue,))
 
         # launch tcp data socket
-        data_thread = threading.Thread(target=socket.run_tcp_dat)
+        self.data_thread = threading.Thread(target=socket.run_tcp_dat)
 
-        data_thread.start()
-        config_thread.start()
+        self.data_thread.start()
+        self.config_thread.start()
 
+        self.connected.wait()
         self.setup()
 
     def __enter__(self):
@@ -47,7 +51,19 @@ class TeraFlash:
     def __exit__(self, type, value, traceback):
         self.disconnect()
         time.sleep(1)
+        self.running.clear()
+        if self.connected.is_set():
+            self.data_thread.join()
+            self.config_thread.join()
         logging.debug("[EXIT] disconnected from device")
+
+    @staticmethod
+    def get_data():
+        return interface.data
+
+    @staticmethod
+    def get_status():
+        return interface.status
 
     def setup(self):
         """
@@ -90,6 +106,8 @@ class TeraFlash:
         logging.debug("[CMD] requesting status")
         cmd = (b'\x14', "SYSTEM : TELL STATUS")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def get_sys_monitor(self):
         """
@@ -97,6 +115,8 @@ class TeraFlash:
         """
         cmd = (b'\x12', "SYSTEM : MONITOR 1")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def set_channel(self, channel: str = "D"):
         """
@@ -107,6 +127,8 @@ class TeraFlash:
         logging.debug(f"[CMD] setting channel: {channel}")
         cmd = (b'\x0b', f"CHANNEL : {channel}")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def set_mode(self, motion: str = "NORMAL"):
         """
@@ -115,8 +137,10 @@ class TeraFlash:
             motion: The desired motion mode
         """
         logging.debug(f"[CMD] setting motion: {motion}")
-        cmd = (b'\x0f', f"CHANNEL : {motion}")
+        cmd = (b'\x0f', f"MOTION : {motion}")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def set_transmission(self, transmission: str = "SLIDING"):
         """
@@ -127,6 +151,8 @@ class TeraFlash:
         logging.debug(f"[CMD] setting transmission: {transmission}")
         cmd = (b'\x16', f"TRANSMISSION : {transmission}")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def set_antenna(self):
         """
@@ -135,6 +161,8 @@ class TeraFlash:
         logging.debug("[CMD] setting antenna: TIA ATN2")
         cmd = (b'\x11', "SYSTEM : TIA ATN2")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def set_acq_begin(self, t_begin: float = 1000.0):
         """
@@ -151,6 +179,8 @@ class TeraFlash:
             b = b'\x1a'
         cmd = (b, f"ACQUISITION : BEGIN {t_begin:.1f}")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     @staticmethod
     def nearest_entry(t_range: float, available_ranges: list):
@@ -188,6 +218,8 @@ class TeraFlash:
             b = b'\x1a'
         cmd = (b, f"ACQUISITION : RANGE {t_range:.2f}")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def set_acq_avg(self, avg: int = 2):
         """
@@ -206,6 +238,8 @@ class TeraFlash:
             b = b'\x1a'
         cmd = (b, f"ACQUISITION : AVERAGE {avg}")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def reset_acq_avg(self):
         """
@@ -215,6 +249,8 @@ class TeraFlash:
 
         cmd = (b'\x17', "ACQUISITION : RESET AVG")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def set_laser(self, state: bool):
         """
@@ -229,6 +265,8 @@ class TeraFlash:
             logging.debug("[CMD] setting laser off")
             cmd = (b'\x0b', "LASER : OFF")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def set_emitter(self, emitter: int, state: bool):
         """
@@ -247,6 +285,8 @@ class TeraFlash:
             logging.debug(f"[CMD] setting emitter {emitter} off")
             cmd = (b'\x0b', f"VOLT{emitter} : OFF")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def set_acq_start(self):
         """
@@ -255,6 +295,8 @@ class TeraFlash:
         logging.debug("[CMD] starting acquisition")
         cmd = (b'\x13', "ACQUISITION : START")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
 
     def set_acq_stop(self):
         """
@@ -263,3 +305,5 @@ class TeraFlash:
         logging.debug("[CMD] stopping acquisition")
         cmd = (b'\x12', "ACQUISITION : STOP")
         self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
