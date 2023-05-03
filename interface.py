@@ -1,10 +1,11 @@
 import time
+from queue import Queue
 
 import numpy as np
 import platform
 from scipy.fft import rfft, rfftfreq
 import socket
-import subprocess  # For executing a shell command
+import subprocess
 import logging
 
 
@@ -23,7 +24,15 @@ class TopticaSocket:
             raise ConnectionError
 
     @staticmethod
-    def ping(host):
+    def ping(host: str):
+        """
+            determines whether a device is connected or not
+        Args:
+            host: IP address as a string
+
+        Returns: True for connected, False for not connected
+
+        """
         res = False
         ping_param = "-n" if platform.system().lower() == "windows" else "-c"
         command = ['ping', ping_param, '1', host]
@@ -32,19 +41,36 @@ class TopticaSocket:
             res = True
         return res
 
-    def wait_for_answer(self, client, length=1024):
+    def wait_for_answer(self, client: socket, length: int = 1024):
+        """
+            waits for the device to acknowledge the previously sent command
+        Args:
+            client: socket object
+            length: length of the buffer
+
+        Returns: True for valid response, False for error
+
+        """
         while self.running:
             data = client.recv(length)
             if data:
                 if "OK" in data.decode("utf-8", "ignore"):
-                    return 1
+                    return True
                 elif "MON" in data.decode("utf-8", "ignore"):
-                    return 1
+                    return True
             else:
-                logging.error("[TCP CONF] Client terminated with FIN.")
-                return 0
+                logging.error(f"[TCP CONF] No valid reply from device: {data.decode('utf-8', 'ignore')}")
+                return False
 
-    def run_conf_tcp(self, cmd_queue):
+    def run_conf_tcp(self, cmd_queue: Queue):
+        """
+            Config TCP thread on port 6341. This handles all the configurations for the device.
+        Args:
+            cmd_queue: Queue from main thread with all the interactive
+
+        Returns:
+
+        """
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind(self.config_server_address)
             logging.info(f"[TCP CONF] Starting server at address {self.config_server_address}")
@@ -80,6 +106,9 @@ class TopticaSocket:
                 time.sleep(0.25)
 
     def run_tcp_dat(self):
+        """
+            Data TCP thread on port 6342. This handles receives all the streamed data from the device and decodes it.
+        """
         types = np.dtype([
             ("signal_1", np.int16),
             ("reserved_1", np.int16),
