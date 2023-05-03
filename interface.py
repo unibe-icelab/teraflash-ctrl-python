@@ -9,6 +9,21 @@ import subprocess
 import logging
 
 
+class DataContainer:
+
+    def __init__(self, n=1000):
+        self.time = np.zeros(n)
+        self.freq = np.zeros(n)
+
+        self.signal_1 = np.zeros(n)
+        self.fft_1_amp = np.zeros(n)
+        self.fft_1_phase = np.zeros(n)
+
+        self.signal_2 = np.zeros(n)
+        self.fft_2_amp = np.zeros(n)
+        self.fft_2_phase = np.zeros(n)
+
+
 class TopticaSocket:
     def __init__(self, ip, data, status):
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
@@ -158,8 +173,14 @@ class TopticaSocket:
                     n = len(p)
                     a = rfft(p)
                     f = rfftfreq(n, 1 / sample_rate)
-                    self._data.freq_1 = f / 1e12
-                    self._data.freq_1_amp = np.abs(a)
+                    self._data.freq = f / 1e12
+                    self._data.fft_1_amp = np.abs(a)
+                    self._data.fft_1_phase = np.angle(a)
+
+                    p = self._data.signal_2
+                    a = rfft(p)
+                    self._data.fft_2_amp = np.abs(a)
+                    self._data.fft_2_phase = np.angle(a)
                 except Exception as e:
                     logging.error(e)
                     logging.error(f"{len(data)=}")

@@ -5,23 +5,7 @@ import time
 
 import numpy as np
 
-from interface import TopticaSocket
-
-
-class DataContainer:
-
-    def __init__(self, n=1000):
-        self.time = np.zeros(n)
-
-        self.signal_1 = np.zeros(n)
-        self.freq_1 = np.zeros(n)
-        self.freq_1_amp = np.zeros(n)
-        self.freq_1_phase = np.zeros(n)
-
-        self.signal_2 = np.zeros(n)
-        self.freq_2 = np.zeros(n)
-        self.freq_2_amp = np.zeros(n)
-        self.freq_2_phase = np.zeros(n)
+from interface import TopticaSocket, DataContainer
 
 
 class TeraFlash:
