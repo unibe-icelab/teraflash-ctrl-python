@@ -4,7 +4,26 @@ This code is developed by the University of Bern and is no official product of T
 The TCP communication protocol is probably incomplete and features may be missing as it was reverse engineered using
 wireshark. The scanning stage is not supported but a list of other features is.
 
+This is a simple library with no persistence settings (the configurations of the previous run will not be stored when the python session is closed).
 A complete GUI written in Rust is also available [here](https://spacegit.unibe.ch/teraflash/teraflash-ctrl).
+
+Features:  
+- [X] Select begin time for the time window
+- [X] Select range
+- [X] Select average
+- [X] Start/Stop Laser
+- [X] Start/Stop Emitters
+- [X] Start/Stop Acquisition
+- [X] Set transmission
+- [X] Set motion mode
+- [X] Set channel
+- [X] Get status
+- [X] Get data
+
+  
+- [ ] Set antenna
+- [ ] Set sensitivity
+- [ ] ...
 
 Always use the context manager to make sure that the connection is properly closed:
 ```python
