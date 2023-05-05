@@ -1,5 +1,5 @@
 import time
-from queue import Queue
+from queue import Queue, Empty
 import threading
 
 import numpy as np
@@ -34,8 +34,11 @@ class TopticaSocket:
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00'
+        self.data_header_len = 52
+        self.read_header_len = 19
         self.config_server_address = (ip, 6341)
         self.data_server_address = (ip, 6342)
+        self.t_begin = 1000.00
         self.range = 50
         self.running = running
         self.connected = connected
@@ -95,6 +98,7 @@ class TopticaSocket:
 
         """
         global status
+        global data
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             # bind server to the address (only works when the address exists)
             s.bind(self.config_server_address)
@@ -108,22 +112,31 @@ class TopticaSocket:
             self.connected.set()
 
             while self.running.is_set():
-
+                print("checking conf...")
                 # check the queue for commands
-                cmd = cmd_queue.get()
-                logging.debug(f"[TCP CONF] sending: {cmd}")
-                if cmd:
-                    (b, s) = cmd
-                    message = self.send_header + b + s.encode()
+                try:
+                    cmd = cmd_queue.get(block=False)
+                    logging.debug(f"[TCP CONF] sending: {cmd}")
+                    (b, c) = cmd
+                    message = self.send_header + b + c.encode()
                     # send command
                     client.send(message)
                     if b == b'\x14':
                         # if we request the status, save the response
-                        status = client.recv(1024).decode("utf-8", "ignore")
+                        status = client.recv(1024)[self.read_header_len:].decode("utf-8", "ignore")
                         self.cmd_ack.set()
-                    elif "RANGE" in s:
+                    elif "RANGE" in c:
                         # if we change the range, also change it for the data thread
-                        self.range = float(s[-6:])
+                        self.range = float(c[-6:])
+                        data.time = np.linspace(self.t_begin, self.t_begin + self.range, 20 * int(self.range) + 1)
+                        # wait for acknowledge
+                        if not self.wait_for_answer(client):
+                            return
+                        self.cmd_ack.set()
+                    elif "BEGIN" in c:
+                        # if we change the range, also change it for the data thread
+                        self.t_begin = float(c[-7:])
+                        data.time = np.linspace(self.t_begin, self.t_begin + self.range, 20 * int(self.range) + 1)
                         # wait for acknowledge
                         if not self.wait_for_answer(client):
                             return
@@ -133,10 +146,10 @@ class TopticaSocket:
                         if not self.wait_for_answer(client):
                             return
                         self.cmd_ack.set()
-                else:
+                except Empty:
                     # just to a simple heartbeat
-                    b, c = (b'\x12', "SYSTEM : MONITOR 1")
-                    message = self.send_header + b + s.encode()
+                    (b, c) = (b'\x12', "SYSTEM : MONITOR 1")
+                    message = self.send_header + b + c.encode()
                     client.settimeout(1.0)
                     client.send(message)
                     # wait for acknowledge
@@ -156,6 +169,8 @@ class TopticaSocket:
             ("signal_2", np.int16),
             ("reserved_2", np.int16),
         ])
+        print(self.t_begin)
+        print(self.range)
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             # bind server to the address (only works when the address exists)
             s.bind(self.data_server_address)
@@ -171,40 +186,36 @@ class TopticaSocket:
                 if old_range != self.range:
                     # range has changed and needs to be adjusted
                     # need to empty the read buffer
-                    pass
+                    client.recv(32100)
 
                 old_range = self.range
 
                 # data always comes in the shape of 4 datasets each as 16bit ints with length of
                 # (20 * self.range + 1)
                 # the header is 52 8 bit ints and since we read 8 bit ints we need to multiply the data by 2
-                raw_data = client.recv(2 * 4 * (20 * self.range + 1) + 52)
-
+                raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.data_header_len)
                 if not raw_data:
                     continue
 
                 # check if header is at the beginning of the received payload
-                if raw_data[:len(self.r_dat_header)] == self.r_dat_header:
+                if raw_data[:self.data_header_len] == self.r_dat_header:
                     # remove the header
-                    data = raw_data[len(self.r_dat_header) + 47:]
+                    _data = raw_data[self.data_header_len:]
                 else:
-                    try:
-                        # split by the header and remove the header
-                        data = raw_data.split(self.r_dat_header)[1][47:]
-                    except IndexError:
-                        continue
-                while True:
-                    if not self.running.is_set():
-                        break
+                    print("header not in the beginning")
+                    continue
+                print(f"{len(_data)=}")
+                print(f"{2 * 4 * (20 * self.range + 1)}")
+                while self.running.is_set():
                     # check if the data is of the correct length
-                    if len(data) != 2 * 4 * (20 * self.range + 1):
-                        data = data + client.recv(2 * 4 * (20 * self.range + 1) - len(data))
+                    if len(_data) != 2 * 4 * (20 * self.range + 1):
+                        _data = _data + client.recv(2 * 4 * (20 * int(self.range) + 1) - len(_data))
                     else:
                         break
                 try:
                     # decode received payload to 16 bit ints
                     types = types.newbyteorder('>')
-                    arr = np.frombuffer(data, dtype=types)
+                    arr = np.frombuffer(_data, dtype=types)
                     data.signal_1 = arr['signal_1'] / 20.0 - arr['signal_1'][0] / 20.0
                     data.signal_2 = arr['signal_2'] / 20.0 - arr['signal_2'][0] / 20.0
 
@@ -226,4 +237,4 @@ class TopticaSocket:
                     data.fft_2_phase = np.angle(a)
                 except Exception as e:
                     logging.error(e)
-                    logging.error(f"{len(data)=}")
+                    logging.error(f"{len(data.signal_1)=}")
