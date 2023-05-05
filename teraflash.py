@@ -9,15 +9,19 @@ import interface
 
 class TeraFlash:
 
-    def __init__(self, ip: str = "169.254.84.101"):
+    def __init__(self, ip: str = "169.254.84.101", log_file=None):
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00\x00'
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00'
 
-        logging.basicConfig(filename=f"logs/teraflash_{int(time.time())}.log", level=logging.DEBUG)
+        if log_file:
+            logging.basicConfig(filename=f"logs/teraflash_{int(time.time())}.log", level=logging.DEBUG)
         logging.getLogger().addHandler(logging.StreamHandler())
 
+        self.laser = False
+        self.emitter = [False, False]
+        self.acquisition = False
         self.ip = ip
         self.cmd_queue = queue.Queue()
         self.running = threading.Event()
@@ -225,9 +229,15 @@ class TeraFlash:
         else:
             b = b'\x1a'
         cmd = (b, f"ACQUISITION : RANGE {t_range:.2f}")
+        measurement_was_running = self.acquisition
+        # need to stop the measurement before changeing the range
+        self.set_acq_stop()
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+        if measurement_was_running:
+            # if the measurement was running, restart it
+            self.set_acq_start()
 
     def set_acq_avg(self, avg: int = 2):
         """
@@ -248,6 +258,8 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+        # reset the average after it was changed
+        self.reset_acq_avg()
 
     def reset_acq_avg(self):
         """
@@ -275,6 +287,7 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+        self.laser = state
 
     def set_emitter(self, emitter: int, state: bool):
         """
@@ -295,6 +308,7 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+        self.emitter[emitter - 1] = state
 
     def set_acq_start(self):
         """
@@ -305,6 +319,7 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+        self.acquisition = True
 
     def set_acq_stop(self):
         """
@@ -315,3 +330,4 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+        self.acquisition = False
