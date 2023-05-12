@@ -308,6 +308,10 @@ class TeraFlash:
             logging.debug("[CMD] setting laser on")
             cmd = (b'\x0a', "LASER : ON")
         else:
+            # emitter bias must be turned off before we turn of the laser
+            if self.emitter:
+                self.set_emitter(1, False)
+                self.set_emitter(2, False)
             logging.debug("[CMD] setting laser off")
             cmd = (b'\x0b', "LASER : OFF")
         self.cmd_queue.put(cmd)
@@ -326,6 +330,9 @@ class TeraFlash:
             logging.info(f"emitter {emitter} is invalid, please use 1 or 2 as emitter value")
             return
         if state:
+            # laser must be running before we turn on the emitter bias
+            if not self.laser:
+                self.set_laser(True)
             logging.debug(f"[CMD] setting emitter {emitter} on")
             cmd = (b'\x0a', f"VOLT{emitter} : ON")
         else:

@@ -19,6 +19,7 @@ classifiers = [
 dependencies = [
     "numpy",
     "wakepy",
+    "scipy"
 ]
 [project.urls]
 "Homepage" = "https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python"

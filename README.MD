@@ -26,23 +26,20 @@ Features:
 - [ ] Set sensitivity
 - [ ] ...
 
-Always use the context manager to make sure that the connection is properly closed:
-
-```python
-from src.teraflash import TeraFlash
-
-if __name__ == "__main__":
-    ip = "169.254.84.101"
-    with TeraFlash(ip) as device:
-        print(device.get_status())
+## I. Installation
+[Download](https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/archive/main/teraflash-ctrl-python-main.zip) the zip archive from
+this webpage and move it into your working directory and then run:
+```shell
+pip install teraflash-ctrl-python-main.zip
 ```
+to install the package for your virtual python environment or system wide.
 
-## Taking a measurement
+## II. Taking a measurement
 After connecting to the device, you can turn on the laser and then the emitter.
 After starting the acquisition, new data should be continuously updated and the most recent dataset can be obtained using `device.get_data()`:
 
 ```python
-from src.teraflash import TeraFlash
+from teraflash import TeraFlash
 
 if __name__ == "__main__":
     ip = "169.254.84.101"
@@ -54,6 +51,8 @@ if __name__ == "__main__":
         print(device.get_data())
 ```
 
+Always use the context manager to ensure that the connection is properly closed upon exiting!  
+Consult the [`example.py`](example.py) for usage.  
   
   
 _Disclaimer: This package is provided on a best effort basis with no guarantee as to the functionality and correctness. Use at your

@@ -167,8 +167,7 @@ class TopticaSocket:
             ("signal_2", np.int16),
             ("reserved_2", np.int16),
         ])
-        print(self.t_begin)
-        print(self.range)
+
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             # bind server to the address (only works when the address exists)
             s.bind(self.data_server_address)
@@ -184,7 +183,6 @@ class TopticaSocket:
                 if old_range != self.range:
                     # range has changed and needs to be adjusted
                     # need to empty the read buffer
-                    print("range changed!")
                     client.settimeout(1)
                     while self.running.is_set():
                         try:
@@ -199,23 +197,18 @@ class TopticaSocket:
                 # data always comes in the shape of 4 datasets each as 16bit ints with length of
                 # (20 * self.range + 1)
                 # the header is 52 8 bit ints and since we read 8 bit ints we need to multiply the data by 2
-                print(f"listening for {2 * 4 * (20 * int(self.range) + 1) + self.data_header_len}")
                 raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.data_header_len)
                 if not raw_data:
                     continue
-                print(f"received {len(raw_data)}")
 
                 # check if header is at the beginning of the received payload
-                print(f"{raw_data[:self.data_header_len]=}")
-                print(f"{self.r_dat_header=}")
                 if raw_data[:self.data_header_len] == self.r_dat_header:
                     # remove the header
                     _data = raw_data[self.data_header_len:]
                 else:
                     _data = raw_data[self.data_header_len:]
-                    print("header not in the beginning")
-                print(f"{len(_data)=}")
-                print(f"{2 * 4 * (20 * self.range + 1)}")
+                    # print("header not in the beginning")
+
                 while self.running.is_set():
                     # check if the data is of the correct length
                     if len(_data) != 2 * 4 * (20 * self.range + 1):

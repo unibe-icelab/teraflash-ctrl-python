@@ -11,10 +11,14 @@ if __name__ == "__main__":
         device.set_acq_range(150.0)
         device.set_laser(True)
         device.set_emitter(1, True)
+        device.set_acq_avg(10)
         device.set_acq_start()
         # wait some time to gather data
         time.sleep(1)
         print(device.get_data().signal_1)
+        device.set_acq_stop()
+        device.set_laser(False)
+        device.set_emitter(1, False)
 
     print(device.get_data().signal_1)
     plt.plot(device.get_data().time, device.get_data().signal_1)
