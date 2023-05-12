@@ -10,7 +10,13 @@ import interface
 
 class TeraFlash:
 
-    def __init__(self, ip: str = "169.254.84.101", log_file=None):
+    def __init__(self,
+                 ip: str = "169.254.84.101",
+                 rng: int = 50,
+                 t_begin: float = 1000.0,
+                 avg: int = 2,
+                 log_file: str | None = None):
+
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00\x00'
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
@@ -23,7 +29,12 @@ class TeraFlash:
         self.laser = False
         self.emitter = [False, False]
         self.acquisition = False
+        self.range = rng
+        self.t_begin = t_begin
+        self.avg = avg
+
         self.ip = ip
+
         self.cmd_queue = queue.Queue()
         self.running = threading.Event()
         self.connected = threading.Event()
@@ -96,13 +107,13 @@ class TeraFlash:
         self.set_mode()
         self.set_transmission()
         self.set_antenna()
-        self.set_acq_begin()
+        self.set_acq_begin(self.t_begin)
         self.set_acq_avg()
         self.set_acq_stop()
-        self.set_acq_range()
+        self.set_acq_range(self.range)
         self.get_sys_monitor()
-        self.set_acq_avg()
-        self.set_acq_range()
+        self.set_acq_avg(self.avg)
+        self.set_acq_range(self.range)
         self.get_sys_monitor()
         self.get_sys_status()
         logging.info("[INIT] device is ready.")
