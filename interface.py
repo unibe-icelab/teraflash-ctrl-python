@@ -30,7 +30,7 @@ status = ""
 
 
 class TopticaSocket:
-    def __init__(self, ip: str, running: threading.Event, connected: threading.Event, cmd_ack: threading.Event):
+    def __init__(self, ip: str, running: threading.Event, connected: threading.Event, cmd_ack: threading.Event,  range_changed: threading.Event):
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00'
@@ -43,6 +43,7 @@ class TopticaSocket:
         self.running = running
         self.connected = connected
         self.cmd_ack = cmd_ack
+        self.range_changed = range_changed
         if not self.ping(ip):
             raise ConnectionError
 
@@ -75,7 +76,7 @@ class TopticaSocket:
 
         """
         while self.running.is_set():
-            _data = client.recv(length)
+            _data = client.recv(length)[self.read_header_len:]
             if _data:
                 _data_decoded = _data.decode("utf-8", "ignore")
                 logging.debug(f"[TCP CONF] received: {_data_decoded}")
@@ -112,7 +113,6 @@ class TopticaSocket:
             self.connected.set()
 
             while self.running.is_set():
-                print("checking conf...")
                 # check the queue for commands
                 try:
                     cmd = cmd_queue.get(block=False)
@@ -150,12 +150,10 @@ class TopticaSocket:
                     # just to a simple heartbeat
                     (b, c) = (b'\x12', "SYSTEM : MONITOR 1")
                     message = self.send_header + b + c.encode()
-                    client.settimeout(1.0)
                     client.send(message)
                     # wait for acknowledge
                     if not self.wait_for_answer(client):
                         return
-                    client.settimeout(None)
                 time.sleep(0.25)
 
     def run_tcp_dat(self):
@@ -186,24 +184,36 @@ class TopticaSocket:
                 if old_range != self.range:
                     # range has changed and needs to be adjusted
                     # need to empty the read buffer
-                    client.recv(32100)
+                    print("range changed!")
+                    client.settimeout(1)
+                    while self.running.is_set():
+                        try:
+                            client.recv(32100)
+                        except socket.timeout:
+                            break
 
+                    client.settimeout(None)
+                    self.range_changed.set()
                 old_range = self.range
 
                 # data always comes in the shape of 4 datasets each as 16bit ints with length of
                 # (20 * self.range + 1)
                 # the header is 52 8 bit ints and since we read 8 bit ints we need to multiply the data by 2
+                print(f"listening for {2 * 4 * (20 * int(self.range) + 1) + self.data_header_len}")
                 raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.data_header_len)
                 if not raw_data:
                     continue
+                print(f"received {len(raw_data)}")
 
                 # check if header is at the beginning of the received payload
+                print(f"{raw_data[:self.data_header_len]=}")
+                print(f"{self.r_dat_header=}")
                 if raw_data[:self.data_header_len] == self.r_dat_header:
                     # remove the header
                     _data = raw_data[self.data_header_len:]
                 else:
+                    _data = raw_data[self.data_header_len:]
                     print("header not in the beginning")
-                    continue
                 print(f"{len(_data)=}")
                 print(f"{2 * 4 * (20 * self.range + 1)}")
                 while self.running.is_set():

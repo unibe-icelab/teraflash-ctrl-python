@@ -39,12 +39,14 @@ class TeraFlash:
         self.running = threading.Event()
         self.connected = threading.Event()
         self.cmd_ack = threading.Event()
+        self.range_changed = threading.Event()
         self.cmd_ack.clear()
         self.connected.clear()
         self.running.set()
+        self.range_changed.set()
 
         try:
-            socket = TopticaSocket(self.ip, self.running, self.connected, self.cmd_ack)
+            socket = TopticaSocket(self.ip, self.running, self.connected, self.cmd_ack, self.range_changed)
         except ConnectionError:
             logging.error("[INIT] Device is not connected. Check cabling")
             return
@@ -210,6 +212,7 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+        self.t_begin = t_begin
 
     @staticmethod
     def nearest_entry(t_range: float, available_ranges: list):
@@ -231,6 +234,7 @@ class TeraFlash:
     def set_acq_range(self, t_range: float = 50.0):
         """
             sets the range/width in the time domain window.
+            available: 5, 10, 15, 20, 35, 50, 70, 100, 120, 150 or 200
         Args:
             t_range: The desired range
         """
@@ -252,6 +256,10 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+        if self.range != t_range:
+            self.range_changed.wait()
+            self.range_changed.clear()
+        self.range = t_range
         if measurement_was_running:
             # if the measurement was running, restart it
             self.set_acq_start()
@@ -277,6 +285,7 @@ class TeraFlash:
         self.cmd_ack.clear()
         # reset the average after it was changed
         self.reset_acq_avg()
+        self.avg = avg
 
     def reset_acq_avg(self):
         """

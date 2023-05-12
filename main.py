@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 
 
 if __name__ == "__main__":
-    with TeraFlash() as device:
+    with TeraFlash(log_file="test.log") as device:
         print(f"status: {device.get_status()}")
-
+        device.set_acq_begin(1100.0)
+        device.set_acq_range(150.0)
         device.set_laser(True)
         device.set_emitter(1, True)
         device.set_acq_start()
@@ -15,6 +16,7 @@ if __name__ == "__main__":
         time.sleep(1)
         print(device.get_data().signal_1)
 
+    print(device.get_data().signal_1)
     plt.plot(device.get_data().time, device.get_data().signal_1)
     plt.show()
 
