@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "teraflash-ctrl-python"
+version = "0.1.0"
+authors = [
+  { name="Linus Leo Stöckli", email="linus.stoeckli@unibe.ch" },
+]
+description = "This Python Package allows the configuration and readout of the TeraFlash Pro THz spectrometer."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+#    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "numpy",
+    "wakepy",
+]
+[project.urls]
+"Homepage" = "https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python"
+"Bug Tracker" = "https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/issues"
