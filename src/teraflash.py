@@ -49,7 +49,7 @@ class TeraFlash:
             socket = TopticaSocket(self.ip, self.running, self.connected, self.cmd_ack, self.range_changed)
         except ConnectionError:
             logging.error("[INIT] Device is not connected. Check cabling")
-            return
+            exit()
 
         # keep the computer awake
         set_keepawake(keep_screen_awake=True)
