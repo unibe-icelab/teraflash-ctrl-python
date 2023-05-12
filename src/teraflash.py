@@ -17,7 +17,15 @@ class TeraFlash:
                  t_begin: float = 1000.0,
                  avg: int = 2,
                  log_file: str | None = None):
-
+        """
+            TeraFlash object used to handle all top level interactions with the user
+        Args:
+            ip: ip-address of the device (instrument)
+            rng: initial range in ps
+            t_begin: initial start time of the window in ps
+            avg: initial number of measurements to average
+            log_file: name of the logfile, if required
+        """
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00\x00'
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
@@ -78,9 +86,21 @@ class TeraFlash:
         self.setup()
 
     def __enter__(self):
+        """
+            Entry point of the context manager
+        Returns: self
+
+        """
         return self
 
-    def __exit__(self, type, value, traceback):
+    def __exit__(self, tp, value, traceback):
+        """
+            Exit point of the context manager, closes the TCP connection properly
+        Args:
+            tp: -
+            value: -
+            traceback: -
+        """
         # disconnect routine
         self.disconnect()
         time.sleep(1)

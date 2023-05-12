@@ -13,6 +13,11 @@ import logging
 class DataContainer:
 
     def __init__(self, n=1000):
+        """
+            Data container that stores the data sent by the instrument
+        Args:
+            n: length of dataset (depends on the selected range)
+        """
         self.time = np.zeros(n)
         self.freq = np.zeros(n)
 
@@ -25,25 +30,45 @@ class DataContainer:
         self.fft_2_phase = np.zeros(n)
 
 
+# global variables for thread communication
 data = DataContainer()
 status = ""
 
 
 class TopticaSocket:
-    def __init__(self, ip: str, running: threading.Event, connected: threading.Event, cmd_ack: threading.Event,  range_changed: threading.Event):
+    def __init__(self,
+                 ip: str,
+                 running: threading.Event,
+                 connected: threading.Event,
+                 cmd_ack: threading.Event,
+                 range_changed: threading.Event):
+        """
+            TCP Socket struct, used for the communication between the server (Computer) and the client (instrument)
+            with two TCP connections (one for configuration and one for data transmission)
+        Args:
+            ip: ip address
+            running: threading event that signals if the application is running
+            connected: threading event that signals if a client is connected
+            cmd_ack: threading event that signals when a command is acknowledged
+            range_changed: threading event that signals when the range has been changed in the configuration
+        """
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00'
         self.data_header_len = 52
         self.read_header_len = 19
+
         self.config_server_address = (ip, 6341)
         self.data_server_address = (ip, 6342)
+
         self.t_begin = 1000.00
         self.range = 50
+
         self.running = running
         self.connected = connected
         self.cmd_ack = cmd_ack
         self.range_changed = range_changed
+
         if not self.ping(ip):
             raise ConnectionError
 
@@ -201,6 +226,9 @@ class TopticaSocket:
                 if not raw_data:
                     continue
 
+                # TODO: the following code is not properly implemented yet, we need
+                # to check how we handle it, if the data comes not in the proper packet length
+
                 # check if header is at the beginning of the received payload
                 if raw_data[:self.data_header_len] == self.r_dat_header:
                     # remove the header
@@ -219,6 +247,8 @@ class TopticaSocket:
                     # decode received payload to 16 bit ints
                     types = types.newbyteorder('>')
                     arr = np.frombuffer(_data, dtype=types)
+
+                    # TODO: check if this is the correct way to do this (compare to original data)
                     data.signal_1 = arr['signal_1'] / 20.0 - arr['signal_1'][0] / 20.0
                     data.signal_2 = arr['signal_2'] / 20.0 - arr['signal_2'][0] / 20.0
 
