@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.interface &mdash; teraflash-ctrl-python 0.1.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            teraflash-ctrl-python
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">teraflash-ctrl-python</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">src.interface</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.interface</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">queue</span> <span class="kn">import</span> <span class="n">Queue</span><span class="p">,</span> <span class="n">Empty</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">platform</span>
+<span class="kn">from</span> <span class="nn">scipy.fft</span> <span class="kn">import</span> <span class="n">rfft</span><span class="p">,</span> <span class="n">rfftfreq</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+
+
+<div class="viewcode-block" id="DataContainer"><a class="viewcode-back" href="../../src.html#src.interface.DataContainer">[docs]</a><span class="k">class</span> <span class="nc">DataContainer</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">1000</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Data container that stores the data sent by the instrument</span>
+<span class="sd">        Args:</span>
+<span class="sd">            n: length of dataset (depends on the selected range)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">freq</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">signal_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fft_1_amp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fft_1_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">signal_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fft_2_amp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">fft_2_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">n</span><span class="p">)</span></div>
+
+
+<span class="c1"># global variables for thread communication</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">DataContainer</span><span class="p">()</span>
+<span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="TopticaSocket"><a class="viewcode-back" href="../../src.html#src.interface.TopticaSocket">[docs]</a><span class="k">class</span> <span class="nc">TopticaSocket</span><span class="p">:</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">ip</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">running</span><span class="p">:</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span>
+                 <span class="n">connected</span><span class="p">:</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span>
+                 <span class="n">cmd_ack</span><span class="p">:</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">,</span>
+                 <span class="n">range_changed</span><span class="p">:</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            TCP Socket struct, used for the communication between the server (Computer) and the client (instrument)</span>
+<span class="sd">            with two TCP connections (one for configuration and one for data transmission)</span>
+<span class="sd">        Args:</span>
+<span class="sd">            ip: ip address</span>
+<span class="sd">            running: threading event that signals if the application is running</span>
+<span class="sd">            connected: threading event that signals if a client is connected</span>
+<span class="sd">            cmd_ack: threading event that signals when a command is acknowledged</span>
+<span class="sd">            range_changed: threading event that signals when the range has been changed in the configuration</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_header</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\xcd\xef\x12</span><span class="s1">4x</span><span class="se">\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00</span><span class="s1">&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_stat_header</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\xcd\xef\x12</span><span class="s1">4x</span><span class="se">\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02</span><span class="s1">&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_dat_header</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\xcd\xef\x12</span><span class="s1">4x</span><span class="se">\x9a\xfe\xdc\x00\x00\x00\x01\x00</span><span class="s1">&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_header_len</span> <span class="o">=</span> <span class="mi">52</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">read_header_len</span> <span class="o">=</span> <span class="mi">19</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_server_address</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span><span class="p">,</span> <span class="mi">6341</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_server_address</span> <span class="o">=</span> <span class="p">(</span><span class="n">ip</span><span class="p">,</span> <span class="mi">6342</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span> <span class="o">=</span> <span class="mf">1000.00</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="mi">50</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="n">running</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="n">connected</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span> <span class="o">=</span> <span class="n">cmd_ack</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span> <span class="o">=</span> <span class="n">range_changed</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ping</span><span class="p">(</span><span class="n">ip</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ConnectionError</span>
+
+<div class="viewcode-block" id="TopticaSocket.ping"><a class="viewcode-back" href="../../src.html#src.interface.TopticaSocket.ping">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">ping</span><span class="p">(</span><span class="n">host</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            determines whether a device is connected or not</span>
+<span class="sd">        Args:</span>
+<span class="sd">            host: IP address as a string</span>
+
+<span class="sd">        Returns: True for connected, False for not connected</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">ping_param</span> <span class="o">=</span> <span class="s2">&quot;-n&quot;</span> <span class="k">if</span> <span class="n">platform</span><span class="o">.</span><span class="n">system</span><span class="p">()</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;windows&quot;</span> <span class="k">else</span> <span class="s2">&quot;-c&quot;</span>
+        <span class="n">command</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;ping&#39;</span><span class="p">,</span> <span class="n">ping_param</span><span class="p">,</span> <span class="s1">&#39;1&#39;</span><span class="p">,</span> <span class="n">host</span><span class="p">]</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">call</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">result</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">res</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="TopticaSocket.wait_for_answer"><a class="viewcode-back" href="../../src.html#src.interface.TopticaSocket.wait_for_answer">[docs]</a>    <span class="k">def</span> <span class="nf">wait_for_answer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">socket</span><span class="p">,</span> <span class="n">length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1024</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            waits for the device to acknowledge the previously sent command</span>
+<span class="sd">        Args:</span>
+<span class="sd">            client: socket object</span>
+<span class="sd">            length: length of the buffer</span>
+
+<span class="sd">        Returns: True for valid response, False for error</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+            <span class="n">_data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="n">length</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_header_len</span><span class="p">:]</span>
+            <span class="k">if</span> <span class="n">_data</span><span class="p">:</span>
+                <span class="n">_data_decoded</span> <span class="o">=</span> <span class="n">_data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span> <span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[TCP CONF] received: </span><span class="si">{</span><span class="n">_data_decoded</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="s2">&quot;OK&quot;</span> <span class="ow">in</span> <span class="n">_data_decoded</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+                <span class="k">elif</span> <span class="s2">&quot;MON&quot;</span> <span class="ow">in</span> <span class="n">_data_decoded</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[TCP CONF] No valid reply from device: </span><span class="si">{</span><span class="n">_data</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">,</span><span class="w"> </span><span class="s1">&#39;ignore&#39;</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="TopticaSocket.run_conf_tcp"><a class="viewcode-back" href="../../src.html#src.interface.TopticaSocket.run_conf_tcp">[docs]</a>    <span class="k">def</span> <span class="nf">run_conf_tcp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd_queue</span><span class="p">:</span> <span class="n">Queue</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Config TCP thread on port 6341. This handles all the configurations for the device.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            cmd_queue: Queue from main thread with all the interactive</span>
+
+<span class="sd">        Returns:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">global</span> <span class="n">status</span>
+        <span class="k">global</span> <span class="n">data</span>
+        <span class="k">with</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
+            <span class="c1"># bind server to the address (only works when the address exists)</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">config_server_address</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[TCP CONF] Starting server at address </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">config_server_address</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># wait for connections</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">listen</span><span class="p">()</span>
+            <span class="c1"># accept connection from device</span>
+            <span class="n">client</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[TCP CONF] Connected by client with address </span><span class="si">{</span><span class="n">addr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># now we are connected</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                <span class="c1"># check the queue for commands</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">cmd</span> <span class="o">=</span> <span class="n">cmd_queue</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">block</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[TCP CONF] sending: </span><span class="si">{</span><span class="n">cmd</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="o">=</span> <span class="n">cmd</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_header</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+                    <span class="c1"># send command</span>
+                    <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">b</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x14</span><span class="s1">&#39;</span><span class="p">:</span>
+                        <span class="c1"># if we request the status, save the response</span>
+                        <span class="n">status</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1024</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_header_len</span><span class="p">:]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span> <span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+                    <span class="k">elif</span> <span class="s2">&quot;RANGE&quot;</span> <span class="ow">in</span> <span class="n">c</span><span class="p">:</span>
+                        <span class="c1"># if we change the range, also change it for the data thread</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="o">-</span><span class="mi">6</span><span class="p">:])</span>
+                        <span class="n">data</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">,</span> <span class="mi">20</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="c1"># wait for acknowledge</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">wait_for_answer</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
+                            <span class="k">return</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+                    <span class="k">elif</span> <span class="s2">&quot;BEGIN&quot;</span> <span class="ow">in</span> <span class="n">c</span><span class="p">:</span>
+                        <span class="c1"># if we change the range, also change it for the data thread</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="o">-</span><span class="mi">7</span><span class="p">:])</span>
+                        <span class="n">data</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">,</span> <span class="mi">20</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="c1"># wait for acknowledge</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">wait_for_answer</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
+                            <span class="k">return</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># wait for acknowledge</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">wait_for_answer</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
+                            <span class="k">return</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+                <span class="k">except</span> <span class="n">Empty</span><span class="p">:</span>
+                    <span class="c1"># just to a simple heartbeat</span>
+                    <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x12</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;SYSTEM : MONITOR 1&quot;</span><span class="p">)</span>
+                    <span class="n">message</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">send_header</span> <span class="o">+</span> <span class="n">b</span> <span class="o">+</span> <span class="n">c</span><span class="o">.</span><span class="n">encode</span><span class="p">()</span>
+                    <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
+                    <span class="c1"># wait for acknowledge</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">wait_for_answer</span><span class="p">(</span><span class="n">client</span><span class="p">):</span>
+                        <span class="k">return</span>
+                <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.25</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TopticaSocket.run_tcp_dat"><a class="viewcode-back" href="../../src.html#src.interface.TopticaSocket.run_tcp_dat">[docs]</a>    <span class="k">def</span> <span class="nf">run_tcp_dat</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Data TCP thread on port 6342. This handles receives all the streamed data from the device and decodes it.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">global</span> <span class="n">data</span>
+        <span class="n">types</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">([</span>
+            <span class="p">(</span><span class="s2">&quot;signal_1&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;reserved_1&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;signal_2&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;reserved_2&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int16</span><span class="p">),</span>
+        <span class="p">])</span>
+
+        <span class="k">with</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
+            <span class="c1"># bind server to the address (only works when the address exists)</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_server_address</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[TCP DAT] Starting server at address </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">data_server_address</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="c1"># wait for connections</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">listen</span><span class="p">()</span>
+            <span class="c1"># accept connection from device</span>
+            <span class="n">client</span><span class="p">,</span> <span class="n">addr</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">accept</span><span class="p">()</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[TCP DAT] Connected by client with address </span><span class="si">{</span><span class="n">addr</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="n">old_range</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span>
+            <span class="c1"># now we are connected</span>
+            <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">old_range</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">:</span>
+                    <span class="c1"># range has changed and needs to be adjusted</span>
+                    <span class="c1"># need to empty the read buffer</span>
+                    <span class="n">client</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                        <span class="k">try</span><span class="p">:</span>
+                            <span class="n">client</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">32100</span><span class="p">)</span>
+                        <span class="k">except</span> <span class="n">socket</span><span class="o">.</span><span class="n">timeout</span><span class="p">:</span>
+                            <span class="k">break</span>
+
+                    <span class="n">client</span><span class="o">.</span><span class="n">settimeout</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+                <span class="n">old_range</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span>
+
+                <span class="c1"># data always comes in the shape of 4 datasets each as 16bit ints with length of</span>
+                <span class="c1"># (20 * self.range + 1)</span>
+                <span class="c1"># the header is 52 8 bit ints and since we read 8 bit ints we need to multiply the data by 2</span>
+                <span class="n">raw_data</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="p">(</span><span class="mi">20</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_header_len</span><span class="p">)</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">raw_data</span><span class="p">:</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># TODO: the following code is not properly implemented yet, we need</span>
+                <span class="c1"># to check how we handle it, if the data comes not in the proper packet length</span>
+
+                <span class="c1"># check if header is at the beginning of the received payload</span>
+                <span class="k">if</span> <span class="n">raw_data</span><span class="p">[:</span><span class="bp">self</span><span class="o">.</span><span class="n">data_header_len</span><span class="p">]</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">r_dat_header</span><span class="p">:</span>
+                    <span class="c1"># remove the header</span>
+                    <span class="n">_data</span> <span class="o">=</span> <span class="n">raw_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data_header_len</span><span class="p">:]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">_data</span> <span class="o">=</span> <span class="n">raw_data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">data_header_len</span><span class="p">:]</span>
+                    <span class="c1"># print(&quot;header not in the beginning&quot;)</span>
+
+                <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+                    <span class="c1"># check if the data is of the correct length</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_data</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="p">(</span><span class="mi">20</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+                        <span class="n">_data</span> <span class="o">=</span> <span class="n">_data</span> <span class="o">+</span> <span class="n">client</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="mi">4</span> <span class="o">*</span> <span class="p">(</span><span class="mi">20</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">_data</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">break</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># decode received payload to 16 bit ints</span>
+                    <span class="n">types</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">newbyteorder</span><span class="p">(</span><span class="s1">&#39;&gt;&#39;</span><span class="p">)</span>
+                    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">_data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">types</span><span class="p">)</span>
+
+                    <span class="c1"># TODO: check if this is the correct way to do this (compare to original data)</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">signal_1</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_1&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mf">20.0</span> <span class="o">-</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">20.0</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">signal_2</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_2&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mf">20.0</span> <span class="o">-</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_2&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">20.0</span>
+
+                    <span class="c1"># do fft of signal 1</span>
+                    <span class="n">t</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">time</span>
+                    <span class="n">p</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">signal_1</span>
+                    <span class="n">sample_rate</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="mf">1e12</span>
+                    <span class="n">n</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+                    <span class="n">a</span> <span class="o">=</span> <span class="n">rfft</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+                    <span class="n">f</span> <span class="o">=</span> <span class="n">rfftfreq</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">sample_rate</span><span class="p">)</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">freq</span> <span class="o">=</span> <span class="n">f</span> <span class="o">/</span> <span class="mf">1e12</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">fft_1_amp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">fft_1_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+
+                    <span class="c1"># do fft of signal 2</span>
+                    <span class="n">p</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">signal_2</span>
+                    <span class="n">a</span> <span class="o">=</span> <span class="n">rfft</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">fft_2_amp</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                    <span class="n">data</span><span class="o">.</span><span class="n">fft_2_phase</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">angle</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                    <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">signal_1</span><span class="p">)</span><span class="si">=}</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Linus Leo Stöckli.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

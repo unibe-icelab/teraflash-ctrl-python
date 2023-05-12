@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>src.teraflash &mdash; teraflash-ctrl-python 0.1.0 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/doctools.js"></script>
+        <script src="../../_static/sphinx_highlight.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            teraflash-ctrl-python
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../modules.html">src</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">teraflash-ctrl-python</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">src.teraflash</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for src.teraflash</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">queue</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">wakepy</span> <span class="kn">import</span> <span class="n">set_keepawake</span><span class="p">,</span> <span class="n">unset_keepawake</span>
+<span class="kn">import</span> <span class="nn">os</span>
+
+<span class="kn">from</span> <span class="nn">interface</span> <span class="kn">import</span> <span class="n">TopticaSocket</span>
+<span class="kn">import</span> <span class="nn">interface</span>
+
+
+<div class="viewcode-block" id="TeraFlash"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash">[docs]</a><span class="k">class</span> <span class="nc">TeraFlash</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">ip</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;169.254.84.101&quot;</span><span class="p">,</span>
+                 <span class="n">rng</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
+                 <span class="n">t_begin</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1000.0</span><span class="p">,</span>
+                 <span class="n">avg</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
+                 <span class="n">log_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            TeraFlash object used to handle all top level interactions with the user</span>
+<span class="sd">        Args:</span>
+<span class="sd">            ip: ip-address of the device (instrument)</span>
+<span class="sd">            rng: initial range in ps</span>
+<span class="sd">            t_begin: initial start time of the window in ps</span>
+<span class="sd">            avg: initial number of measurements to average</span>
+<span class="sd">            log_file: name of the logfile, if required</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_dat_header</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\xcd\xef\x12</span><span class="s1">4x</span><span class="se">\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00\x00</span><span class="s1">&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">send_header</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\xcd\xef\x12</span><span class="s1">4x</span><span class="se">\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00</span><span class="s1">&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_stat_header</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\xcd\xef\x12</span><span class="s1">4x</span><span class="se">\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02</span><span class="s1">&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">r_dat_header</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\xcd\xef\x12</span><span class="s1">4x</span><span class="se">\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00</span><span class="s1">&#39;</span>
+
+        <span class="k">if</span> <span class="n">log_file</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="s2">&quot;logs&quot;</span><span class="p">):</span>
+                <span class="n">os</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="s2">&quot;logs&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">log_file</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.log&quot;</span><span class="p">):</span>
+                <span class="n">log_file</span> <span class="o">+=</span> <span class="s2">&quot;.log&quot;</span>
+            <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;logs/</span><span class="si">{</span><span class="n">log_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">):</span>
+                <span class="n">log_file</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="nb">int</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span><span class="si">}</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="n">log_file</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;logs/</span><span class="si">{</span><span class="n">log_file</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span><span class="o">.</span><span class="n">addHandler</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">StreamHandler</span><span class="p">())</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">laser</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emitter</span> <span class="o">=</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acquisition</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="n">rng</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span> <span class="o">=</span> <span class="n">t_begin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">avg</span> <span class="o">=</span> <span class="n">avg</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">ip</span> <span class="o">=</span> <span class="n">ip</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">socket</span> <span class="o">=</span> <span class="n">TopticaSocket</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ip</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ConnectionError</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;[INIT] Device is not connected. Check cabling&quot;</span><span class="p">)</span>
+            <span class="n">exit</span><span class="p">()</span>
+
+        <span class="c1"># keep the computer awake</span>
+        <span class="n">set_keepawake</span><span class="p">(</span><span class="n">keep_screen_awake</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="c1"># configure tcp config socket</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">run_conf_tcp</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="p">,))</span>
+
+        <span class="c1"># configure tcp data socket</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">run_tcp_dat</span><span class="p">)</span>
+
+        <span class="c1"># launch threads</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+        <span class="c1"># wait until a device is connected</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+        <span class="c1"># start setup sequence</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Entry point of the context manager</span>
+<span class="sd">        Returns: self</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tp</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Exit point of the context manager, closes the TCP connection properly</span>
+<span class="sd">        Args:</span>
+<span class="sd">            tp: -</span>
+<span class="sd">            value: -</span>
+<span class="sd">            traceback: -</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># disconnect routine</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">disconnect</span><span class="p">()</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="c1"># if a device was connected, wait for the TCP threads to finish</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">data_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">config_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+        <span class="c1"># clear the keep-awake flag</span>
+        <span class="n">unset_keepawake</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[EXIT] disconnected from device&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TeraFlash.get_data"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.get_data">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_data</span><span class="p">():</span>
+        <span class="c1"># return global variable</span>
+        <span class="k">return</span> <span class="n">interface</span><span class="o">.</span><span class="n">data</span></div>
+
+<div class="viewcode-block" id="TeraFlash.get_status"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.get_status">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_status</span><span class="p">():</span>
+        <span class="c1"># return global variable</span>
+        <span class="k">return</span> <span class="n">interface</span><span class="o">.</span><span class="n">status</span></div>
+
+<div class="viewcode-block" id="TeraFlash.setup"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            performs the setup sequence of the device as reconstructed</span>
+<span class="sd">            by using wireshark on the official application</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;[INIT] setting up the device...&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_sys_status</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_sys_status</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_channel</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_mode</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_transmission</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_antenna</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_begin</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_avg</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_stop</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_sys_monitor</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_avg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">avg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_sys_monitor</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_sys_status</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;[INIT] device is ready.&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TeraFlash.disconnect"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.disconnect">[docs]</a>    <span class="k">def</span> <span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            disconnects from the device, order of calls is important!</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[CMD] disconnecting from device&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_stop</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_emitter</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_emitter</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_laser</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TeraFlash.get_sys_status"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.get_sys_status">[docs]</a>    <span class="k">def</span> <span class="nf">get_sys_status</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            request the system status string</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[CMD] requesting status&quot;</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x14</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;SYSTEM : TELL STATUS&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TeraFlash.get_sys_monitor"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.get_sys_monitor">[docs]</a>    <span class="k">def</span> <span class="nf">get_sys_monitor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            this is repeatedly called in the official application</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x12</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;SYSTEM : MONITOR 1&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TeraFlash.set_channel"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_channel">[docs]</a>    <span class="k">def</span> <span class="nf">set_channel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">channel</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;D&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            sets dual or single channel mode</span>
+<span class="sd">        Args:</span>
+<span class="sd">            channel: The desired mode</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[CMD] setting channel: </span><span class="si">{</span><span class="n">channel</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0b</span><span class="s1">&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;CHANNEL : </span><span class="si">{</span><span class="n">channel</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TeraFlash.set_mode"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_mode">[docs]</a>    <span class="k">def</span> <span class="nf">set_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">motion</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;NORMAL&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            sets the motion mode</span>
+<span class="sd">        Args:</span>
+<span class="sd">            motion: The desired motion mode</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[CMD] setting motion: </span><span class="si">{</span><span class="n">motion</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;MOTION : </span><span class="si">{</span><span class="n">motion</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TeraFlash.set_transmission"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_transmission">[docs]</a>    <span class="k">def</span> <span class="nf">set_transmission</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">transmission</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;SLIDING&quot;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            sets the desired transmission mode</span>
+<span class="sd">        Args:</span>
+<span class="sd">            transmission: the desired transmission mode. &quot;SLIDING&quot; or &quot;BLOCK&quot;</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[CMD] setting transmission: </span><span class="si">{</span><span class="n">transmission</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x16</span><span class="s1">&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;TRANSMISSION : </span><span class="si">{</span><span class="n">transmission</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TeraFlash.set_antenna"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_antenna">[docs]</a>    <span class="k">def</span> <span class="nf">set_antenna</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            sets the antenna mode. TBD if this can be adjusted or is fixed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[CMD] setting antenna: TIA ATN2&quot;</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x11</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;SYSTEM : TIA ATN2&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TeraFlash.set_acq_begin"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_acq_begin">[docs]</a>    <span class="k">def</span> <span class="nf">set_acq_begin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_begin</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1000.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            sets the start time of the time domain window.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            t_begin: The desired start time</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[CMD] setting acq begin: </span><span class="si">{</span><span class="n">t_begin</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t_begin</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x18</span><span class="s1">&#39;</span>
+        <span class="k">elif</span> <span class="n">t_begin</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x19</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1a</span><span class="s1">&#39;</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;ACQUISITION : BEGIN </span><span class="si">{</span><span class="n">t_begin</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span> <span class="o">=</span> <span class="n">t_begin</span></div>
+
+<div class="viewcode-block" id="TeraFlash.nearest_entry"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.nearest_entry">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">nearest_entry</span><span class="p">(</span><span class="n">t_range</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">available_ranges</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            t_range: range provided by the user</span>
+<span class="sd">            available_ranges: available ranges</span>
+
+<span class="sd">        Returns: the nearest available range to the provided range</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nearest</span> <span class="o">=</span> <span class="n">available_ranges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">num</span> <span class="ow">in</span> <span class="n">available_ranges</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">t_range</span> <span class="o">-</span> <span class="n">num</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">abs</span><span class="p">(</span><span class="n">t_range</span> <span class="o">-</span> <span class="n">nearest</span><span class="p">):</span>
+                <span class="n">nearest</span> <span class="o">=</span> <span class="n">num</span>
+        <span class="k">return</span> <span class="n">nearest</span></div>
+
+<div class="viewcode-block" id="TeraFlash.set_acq_range"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_acq_range">[docs]</a>    <span class="k">def</span> <span class="nf">set_acq_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_range</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">50.0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            sets the range/width in the time domain window.</span>
+<span class="sd">            available: 5, 10, 15, 20, 35, 50, 70, 100, 120, 150 or 200</span>
+<span class="sd">        Args:</span>
+<span class="sd">            t_range: The desired range</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">available_ranges</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">35</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">120</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">200</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">t_range</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">available_ranges</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[CMD] </span><span class="si">{</span><span class="n">t_range</span><span class="si">}</span><span class="s2"> is not supported. Only </span><span class="si">{</span><span class="n">available_ranges</span><span class="si">}</span><span class="s2"> are supported.&quot;</span><span class="p">)</span>
+            <span class="n">t_range</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nearest_entry</span><span class="p">(</span><span class="n">t_range</span><span class="p">,</span> <span class="n">available_ranges</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[CMD] setting acq range: </span><span class="si">{</span><span class="n">t_range</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">t_range</span> <span class="o">&lt;=</span> <span class="mf">5.0</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x18</span><span class="s1">&#39;</span>
+        <span class="k">elif</span> <span class="n">t_range</span> <span class="o">&lt;=</span> <span class="mf">70.0</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x19</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1a</span><span class="s1">&#39;</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;ACQUISITION : RANGE </span><span class="si">{</span><span class="n">t_range</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">measurement_was_running</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">acquisition</span>
+        <span class="c1"># need to stop the measurement before changeing the range</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_stop</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">!=</span> <span class="n">t_range</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="n">t_range</span>
+        <span class="k">if</span> <span class="n">measurement_was_running</span><span class="p">:</span>
+            <span class="c1"># if the measurement was running, restart it</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_start</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TeraFlash.set_acq_avg"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_acq_avg">[docs]</a>    <span class="k">def</span> <span class="nf">set_acq_avg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">avg</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            sets the width of the moving average to be performed by the device</span>
+<span class="sd">        Args:</span>
+<span class="sd">            avg: The desired averages</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[CMD] setting acq avg: </span><span class="si">{</span><span class="n">avg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">avg</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x17</span><span class="s1">&#39;</span>
+        <span class="k">elif</span> <span class="n">avg</span> <span class="o">&lt;</span> <span class="mi">100</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x18</span><span class="s1">&#39;</span>
+        <span class="k">elif</span> <span class="n">avg</span> <span class="o">&lt;</span> <span class="mi">1000</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x19</span><span class="s1">&#39;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1a</span><span class="s1">&#39;</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;ACQUISITION : AVERAGE </span><span class="si">{</span><span class="n">avg</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="c1"># reset the average after it was changed</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_acq_avg</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">avg</span> <span class="o">=</span> <span class="n">avg</span></div>
+
+<div class="viewcode-block" id="TeraFlash.reset_acq_avg"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.reset_acq_avg">[docs]</a>    <span class="k">def</span> <span class="nf">reset_acq_avg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            resets the acquisition moving average to be performed by the device</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[CMD] resetting acq avg&quot;</span><span class="p">)</span>
+
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x17</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;ACQUISITION : RESET AVG&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="TeraFlash.set_laser"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_laser">[docs]</a>    <span class="k">def</span> <span class="nf">set_laser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            sets the laser mode ON or OFF</span>
+<span class="sd">        Args:</span>
+<span class="sd">            state: True for ON, False for OFF</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">state</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[CMD] setting laser on&quot;</span><span class="p">)</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0a</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;LASER : ON&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># emitter bias must be turned off before we turn of the laser</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">emitter</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_emitter</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_emitter</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[CMD] setting laser off&quot;</span><span class="p">)</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0b</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;LASER : OFF&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">laser</span> <span class="o">=</span> <span class="n">state</span></div>
+
+<div class="viewcode-block" id="TeraFlash.set_emitter"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_emitter">[docs]</a>    <span class="k">def</span> <span class="nf">set_emitter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">emitter</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            sets the state of the emitter ON or OFF</span>
+<span class="sd">        Args:</span>
+<span class="sd">            emitter: Emitter 1 or 2</span>
+<span class="sd">            state: True for ON, False for OFF</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">emitter</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;emitter </span><span class="si">{</span><span class="n">emitter</span><span class="si">}</span><span class="s2"> is invalid, please use 1 or 2 as emitter value&quot;</span><span class="p">)</span>
+            <span class="k">return</span>
+        <span class="k">if</span> <span class="n">state</span><span class="p">:</span>
+            <span class="c1"># laser must be running before we turn on the emitter bias</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">laser</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_laser</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[CMD] setting emitter </span><span class="si">{</span><span class="n">emitter</span><span class="si">}</span><span class="s2"> on&quot;</span><span class="p">)</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0a</span><span class="s1">&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;VOLT</span><span class="si">{</span><span class="n">emitter</span><span class="si">}</span><span class="s2"> : ON&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[CMD] setting emitter </span><span class="si">{</span><span class="n">emitter</span><span class="si">}</span><span class="s2"> off&quot;</span><span class="p">)</span>
+            <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x0b</span><span class="s1">&#39;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;VOLT</span><span class="si">{</span><span class="n">emitter</span><span class="si">}</span><span class="s2"> : OFF&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">emitter</span><span class="p">[</span><span class="n">emitter</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">state</span></div>
+
+<div class="viewcode-block" id="TeraFlash.set_acq_start"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_acq_start">[docs]</a>    <span class="k">def</span> <span class="nf">set_acq_start</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            start the acquisition (data streaming)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[CMD] starting acquisition&quot;</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x13</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;ACQUISITION : START&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acquisition</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="TeraFlash.set_acq_stop"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_acq_stop">[docs]</a>    <span class="k">def</span> <span class="nf">set_acq_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            stop the acquisition (data streaming)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[CMD] stopping acquisition&quot;</span><span class="p">)</span>
+        <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x12</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;ACQUISITION : STOP&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acquisition</span> <span class="o">=</span> <span class="kc">False</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, Linus Leo Stöckli.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
