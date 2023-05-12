@@ -3,6 +3,7 @@ import queue
 import threading
 import time
 from wakepy import set_keepawake, unset_keepawake
+import os
 
 from interface import TopticaSocket
 import interface
@@ -23,6 +24,8 @@ class TeraFlash:
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\xff\x91\xe7\x03\xe8\x00'
 
         if log_file:
+            if not os.path.isdir("logs"):
+                os.mkdir("logs")
             logging.basicConfig(filename=f"logs/teraflash_{int(time.time())}.log", level=logging.DEBUG)
         logging.getLogger().addHandler(logging.StreamHandler())
 
