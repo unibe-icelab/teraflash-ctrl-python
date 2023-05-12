@@ -9,19 +9,17 @@ This is a simple library with no persistence settings (the configurations of the
 A complete GUI written in Rust is also available [here](https://spacegit.unibe.ch/teraflash/teraflash-ctrl).
 
 Features:  
-- [X] Select begin time for the time window
-- [X] Select range
-- [X] Select average
-- [X] Start/Stop Laser
-- [X] Start/Stop Emitters
-- [X] Start/Stop Acquisition
-- [X] Set transmission
-- [X] Set motion mode
-- [X] Set channel
-- [X] Get status
-- [X] Get data
-
-  
+- [x] Select begin time for the time window
+- [x] Select range
+- [x] Select average
+- [x] Start/Stop Laser
+- [x] Start/Stop Emitters
+- [x] Start/Stop Acquisition
+- [x] Set transmission
+- [x] Set motion mode
+- [x] Set channel
+- [x] Get status
+- [x] Get data
 - [ ] Set antenna
 - [ ] Set sensitivity
 - [ ] ...
