@@ -26,7 +26,11 @@ class TeraFlash:
         if log_file:
             if not os.path.isdir("logs"):
                 os.mkdir("logs")
-            logging.basicConfig(filename=f"logs/teraflash_{int(time.time())}.log", level=logging.DEBUG)
+            if not log_file.endswith(".log"):
+                log_file += ".log"
+            if os.path.exists(f"logs/{log_file}"):
+                log_file = f"{int(time.time())}" + log_file
+            logging.basicConfig(filename=f"logs/{log_file}", level=logging.DEBUG)
         logging.getLogger().addHandler(logging.StreamHandler())
 
         self.laser = False
