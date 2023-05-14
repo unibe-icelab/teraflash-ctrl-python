@@ -19,21 +19,21 @@ Features:
 - [x] Set motion mode
 - [x] Set channel
 - [x] Get status
-- [x] Get data
+- [x] Get data (time domain and frequency domain)
 - [ ] Set antenna
 - [ ] Set sensitivity
 - [ ] ...
 
 ## I. Installation
 [Download](https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/archive/main/teraflash-ctrl-python-main.zip) the zip archive from
-this webpage and move it into your working directory and then run:
+this webpage, move it into your working directory and then run:
 ```shell
 pip install teraflash-ctrl-python-main.zip
 ```
-to install the package for your virtual python environment or system wide.
+to install the package for your virtual python environment or system-wide.
 
 ## II. Taking a measurement
-After connecting to the device, you can turn on the laser and then the emitter.
+When connected to the device, you can turn on the laser and then the emitter.
 After starting the acquisition, new data should be continuously updated and the most recent dataset can be obtained using `device.get_data()`:
 
 ```python
