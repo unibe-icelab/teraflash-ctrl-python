@@ -54,14 +54,17 @@ class TeraFlash:
         self.running = threading.Event()
         self.connected = threading.Event()
         self.cmd_ack = threading.Event()
+        self.buffer_emptied = threading.Event()
         self.range_changed = threading.Event()
         self.cmd_ack.clear()
         self.connected.clear()
         self.running.set()
-        self.range_changed.set()
+        self.buffer_emptied.set()
+        self.range_changed.clear()
 
         try:
-            socket = TopticaSocket(self.ip, self.running, self.connected, self.cmd_ack, self.range_changed)
+            socket = TopticaSocket(self.ip, self.running, self.connected, self.cmd_ack, self.buffer_emptied,
+                                   self.range_changed)
         except ConnectionError:
             logging.error("[INIT] Device is not connected. Check cabling")
             exit()
@@ -73,7 +76,7 @@ class TeraFlash:
         self.config_thread = threading.Thread(target=socket.run_conf_tcp, args=(self.cmd_queue,))
 
         # configure tcp data socket
-        self.data_thread = threading.Thread(target=socket.run_tcp_dat)
+        self.data_thread = threading.Thread(target=socket.run_tcp_dat, args=(self.cmd_queue,))
 
         # launch threads
         self.data_thread.start()
@@ -84,6 +87,9 @@ class TeraFlash:
 
         # start setup sequence
         self.setup()
+
+        # wait some time to gather data
+        time.sleep(3)
 
     def __enter__(self):
         """
@@ -145,6 +151,7 @@ class TeraFlash:
         self.set_acq_range(self.range)
         self.get_sys_monitor()
         self.get_sys_status()
+        self.range_changed.clear()
         logging.info("[INIT] device is ready.")
 
     def disconnect(self):
@@ -278,15 +285,17 @@ class TeraFlash:
             b = b'\x1a'
         cmd = (b, f"ACQUISITION : RANGE {t_range:.2f}")
         measurement_was_running = self.acquisition
-        # need to stop the measurement before changeing the range
+        # need to stop the measurement before changing the range
+        logging.debug(f"stopping acquisition because of range change! will restart late: {measurement_was_running}")
+        self.range_changed.set()
         self.set_acq_stop()
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
         if self.range != t_range:
-            self.range_changed.wait()
-            self.range_changed.clear()
-        self.range = t_range
+            self.range = t_range
+            self.buffer_emptied.wait()
+            self.buffer_emptied.clear()
         if measurement_was_running:
             # if the measurement was running, restart it
             self.set_acq_start()

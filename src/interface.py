@@ -41,6 +41,7 @@ class TopticaSocket:
                  running: threading.Event,
                  connected: threading.Event,
                  cmd_ack: threading.Event,
+                 buffer_emptied: threading.Event,
                  range_changed: threading.Event):
         """
             TCP Socket struct, used for the communication between the server (Computer) and the client (instrument)
@@ -68,6 +69,7 @@ class TopticaSocket:
         self.connected = connected
         self.cmd_ack = cmd_ack
         self.range_changed = range_changed
+        self.buffer_emptied = buffer_emptied
 
         if not self.ping(ip):
             raise ConnectionError
@@ -181,7 +183,7 @@ class TopticaSocket:
                         return
                 time.sleep(0.25)
 
-    def run_tcp_dat(self):
+    def run_tcp_dat(self, cmd_queue: Queue):
         """
             Data TCP thread on port 6342. This handles receives all the streamed data from the device and decodes it.
         """
@@ -202,26 +204,30 @@ class TopticaSocket:
             # accept connection from device
             client, addr = s.accept()
             logging.info(f"[TCP DAT] Connected by client with address {addr}")
-            old_range = self.range
             # now we are connected
             while self.running.is_set():
-                if old_range != self.range:
+                logging.info("new loop")
+                if self.range_changed.is_set():
                     # range has changed and needs to be adjusted
                     # need to empty the read buffer
+                    logging.info(f"changing range to {self.range}")
                     client.settimeout(1)
+                    logging.info("adapted timeout")
                     while self.running.is_set():
+                        logging.info(f"waiting to fill buffer")
                         try:
                             client.recv(32100)
                         except socket.timeout:
                             break
-
+                    logging.info("timeout.. buffer emptied")
                     client.settimeout(None)
-                    self.range_changed.set()
-                old_range = self.range
+                    self.buffer_emptied.set()
+                    self.range_changed.clear()
 
                 # data always comes in the shape of 4 datasets each as 16bit ints with length of
                 # (20 * self.range + 1)
                 # the header is 52 8 bit ints and since we read 8 bit ints we need to multiply the data by 2
+                logging.info("waiting for data")
                 raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.data_header_len)
                 if not raw_data:
                     continue
@@ -229,20 +235,23 @@ class TopticaSocket:
                 # TODO: the following code is not properly implemented yet, we need
                 # to check how we handle it, if the data comes not in the proper packet length
 
-                # check if header is at the beginning of the received payload
-                if raw_data[:self.data_header_len] == self.r_dat_header:
-                    # remove the header
-                    _data = raw_data[self.data_header_len:]
-                else:
-                    _data = raw_data[self.data_header_len:]
-                    # print("header not in the beginning")
+                _data = raw_data[self.data_header_len:]
 
-                while self.running.is_set():
-                    # check if the data is of the correct length
-                    if len(_data) != 2 * 4 * (20 * self.range + 1):
-                        _data = _data + client.recv(2 * 4 * (20 * int(self.range) + 1) - len(_data))
-                    else:
-                        break
+                # check if header is at the beginning of the received payload
+                # if raw_data[:self.data_header_len] == self.r_dat_header:
+                #     # remove the header
+                #     _data = raw_data[self.data_header_len:]
+                # else:
+                #     _data = raw_data[self.data_header_len:]
+                #     # print("header not in the beginning")
+                #     while self.running.is_set():
+                #         logging.info("data does not have correct length...")
+                #
+                #         # check if the data is of the correct length
+                #         if len(_data) != 2 * 4 * (20 * self.range + 1):
+                #             _data = _data + client.recv(2 * 4 * (20 * int(self.range) + 1) - len(_data))
+                #         else:
+                #             break
                 try:
                     # decode received payload to 16 bit ints
                     types = types.newbyteorder('>')
