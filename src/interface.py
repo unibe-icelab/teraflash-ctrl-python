@@ -208,20 +208,15 @@ class TopticaSocket:
             logging.info(f"[TCP DAT] Connected by client with address {addr}")
             # now we are connected
             while self.running.is_set():
-                logging.info("new loop")
                 if self.range_changed.is_set():
                     # range has changed and needs to be adjusted
                     # need to empty the read buffer
-                    logging.info(f"changing range to {self.range}")
                     client.settimeout(1)
-                    logging.info("adapted timeout")
                     while self.running.is_set():
-                        logging.info(f"waiting to fill buffer")
                         try:
                             client.recv(32100)
                         except socket.timeout:
                             break
-                    logging.info("timeout.. buffer emptied")
                     client.settimeout(None)
                     self.buffer_emptied.set()
                     self.range_changed.clear()
@@ -229,7 +224,6 @@ class TopticaSocket:
                 # data always comes in the shape of 4 datasets each as 16bit ints with length of
                 # (20 * self.range + 1)
                 # the header is 52 8 bit ints and since we read 8 bit ints we need to multiply the data by 2
-                logging.info("waiting for data")
                 if self.range_changed.is_set():
                     continue
                 if not self.acq_running.is_set():
