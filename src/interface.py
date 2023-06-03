@@ -42,7 +42,8 @@ class TopticaSocket:
                  connected: threading.Event,
                  cmd_ack: threading.Event,
                  buffer_emptied: threading.Event,
-                 range_changed: threading.Event):
+                 range_changed: threading.Event,
+                 acq_running: threading.Event):
         """
             TCP Socket struct, used for the communication between the server (Computer) and the client (instrument)
             with two TCP connections (one for configuration and one for data transmission)
@@ -70,6 +71,7 @@ class TopticaSocket:
         self.cmd_ack = cmd_ack
         self.range_changed = range_changed
         self.buffer_emptied = buffer_emptied
+        self.acq_running = acq_running
 
         if not self.ping(ip):
             raise ConnectionError
@@ -228,6 +230,10 @@ class TopticaSocket:
                 # (20 * self.range + 1)
                 # the header is 52 8 bit ints and since we read 8 bit ints we need to multiply the data by 2
                 logging.info("waiting for data")
+                if self.range_changed.is_set():
+                    continue
+                if not self.acq_running.is_set():
+                    continue
                 raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.data_header_len)
                 if not raw_data:
                     continue

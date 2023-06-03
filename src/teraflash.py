@@ -16,7 +16,7 @@ class TeraFlash:
                  rng: int = 50,
                  t_begin: float = 1000.0,
                  avg: int = 2,
-                 log_file: str | None = None):
+                 log_file = None):
         """
             TeraFlash object used to handle all top level interactions with the user
         Args:
@@ -56,15 +56,17 @@ class TeraFlash:
         self.cmd_ack = threading.Event()
         self.buffer_emptied = threading.Event()
         self.range_changed = threading.Event()
+        self.acq_running = threading.Event()
         self.cmd_ack.clear()
         self.connected.clear()
         self.running.set()
         self.buffer_emptied.set()
         self.range_changed.clear()
+        self.acq_running.clear()
 
         try:
             socket = TopticaSocket(self.ip, self.running, self.connected, self.cmd_ack, self.buffer_emptied,
-                                   self.range_changed)
+                                   self.range_changed, self.acq_running)
         except ConnectionError:
             logging.error("[INIT] Device is not connected. Check cabling")
             exit()
@@ -292,10 +294,9 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
-        if self.range != t_range:
-            self.range = t_range
-            self.buffer_emptied.wait()
-            self.buffer_emptied.clear()
+        self.range = t_range
+        self.buffer_emptied.wait()
+        self.buffer_emptied.clear()
         if measurement_was_running:
             # if the measurement was running, restart it
             self.set_acq_start()
@@ -388,6 +389,7 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+        self.acq_running.set()
         self.acquisition = True
 
     def set_acq_stop(self):
@@ -399,4 +401,5 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+        self.acq_running.clear()
         self.acquisition = False
