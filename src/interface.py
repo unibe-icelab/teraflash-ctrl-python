@@ -231,6 +231,10 @@ class TopticaSocket:
                 raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.data_header_len)
                 if not raw_data:
                     continue
+                if len(raw_data) != 2 * 4 * (20 * int(self.range) + 1) + self.data_header_len:
+                    logging.debug(
+                        f"wrong length: {len(raw_data)}, should be {2 * 4 * (20 * int(self.range) + 1) + self.data_header_len}")
+                    continue
 
                 # TODO: the following code is not properly implemented yet, we need
                 # to check how we handle it, if the data comes not in the proper packet length
