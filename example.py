@@ -13,10 +13,11 @@ if __name__ == "__main__":
         device.set_laser(True)
         device.set_emitter(1, True)
         device.set_acq_start()
+        time.sleep(3)
         for i in range(10):
             data = device.get_data()
             print(data.signal_1)
-            time.sleep(1)
+            time.sleep(0.1)
         device.set_acq_stop()
         device.set_laser(False)
         device.set_emitter(1, False)

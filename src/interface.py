@@ -56,7 +56,7 @@ class TopticaSocket:
         """
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
-        self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00'
+        self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\t\x1a\xe6\x03\xe8\x00\x00\x04L\x00\x00\x0c\xcc\xcc\xcc\x00\x00\x16\x0b\x00\x00]\xd8\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00'
         self.data_header_len = 52
         self.read_header_len = 19
 
@@ -231,10 +231,23 @@ class TopticaSocket:
                 raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.data_header_len)
                 if not raw_data:
                     continue
-                if len(raw_data) != 2 * 4 * (20 * int(self.range) + 1) + self.data_header_len:
-                    logging.debug(
-                        f"wrong length: {len(raw_data)}, should be {2 * 4 * (20 * int(self.range) + 1) + self.data_header_len}")
+
+                if raw_data[:self.data_header_len] != self.r_dat_header:
                     continue
+
+                if len(raw_data) != 2 * 4 * (20 * int(self.range) + 1) + self.data_header_len:
+                    skip_this = False
+                    while self.running.is_set():
+                        to_append = client.recv(
+                            2 * 4 * (20 * int(self.range) + 1) + self.data_header_len - len(raw_data))
+                        raw_data += to_append
+                        if len(raw_data) == 2 * 4 * (20 * int(self.range) + 1) + self.data_header_len:
+                            break
+                        if len(raw_data) == 2 * 4 * (20 * int(self.range) + 1) + self.data_header_len:
+                            skip_this = True
+                            break
+                    if skip_this:
+                        continue
 
                 # TODO: the following code is not properly implemented yet, we need
                 # to check how we handle it, if the data comes not in the proper packet length

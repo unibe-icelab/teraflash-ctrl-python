@@ -30,7 +30,7 @@ Features:
 Download the [latest release](https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/releases) or the [current state](https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/archive/main/teraflash-ctrl-python-main.zip)
 as a zip archive, move it into your working directory and then run:
 ```shell
-pip install teraflash-ctrl-python-v0.1.0.zip
+pip install teraflash-ctrl-python-v0.1.1.zip
 ```
 for the latest release or
 ```shell
