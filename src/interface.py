@@ -58,7 +58,7 @@ class TopticaSocket:
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\t\x1a\xe6\x03\xe8\x00\x00\x04L\x00\x00\x0c\xcc\xcc\xcc\x00\x00\x16\x0b\x00\x00]\xd8\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00'
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe'
-        self.data_header_len = 52
+        self.full_data_header_len = 52
         self.read_header_len = 19
         self.data_header_len = 7
 
@@ -230,22 +230,22 @@ class TopticaSocket:
                     continue
                 if not self.acq_running.is_set():
                     continue
-                raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.data_header_len)
+                raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len)
                 if not raw_data:
                     continue
 
                 if raw_data[:self.data_header_len] != self.r_dat_header:
                     continue
 
-                if len(raw_data) != 2 * 4 * (20 * int(self.range) + 1) + self.data_header_len:
+                if len(raw_data) != 2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len:
                     skip_this = False
                     while self.running.is_set():
                         to_append = client.recv(
-                            2 * 4 * (20 * int(self.range) + 1) + self.data_header_len - len(raw_data))
+                            2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len - len(raw_data))
                         raw_data += to_append
-                        if len(raw_data) == 2 * 4 * (20 * int(self.range) + 1) + self.data_header_len:
+                        if len(raw_data) == 2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len:
                             break
-                        if len(raw_data) == 2 * 4 * (20 * int(self.range) + 1) + self.data_header_len:
+                        if len(raw_data) == 2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len:
                             skip_this = True
                             break
                     if skip_this:
@@ -254,7 +254,7 @@ class TopticaSocket:
                 # TODO: the following code is not properly implemented yet, we need
                 # to check how we handle it, if the data comes not in the proper packet length
 
-                _data = raw_data[self.data_header_len:]
+                _data = raw_data[self.full_data_header_len:]
 
                 # check if header is at the beginning of the received payload
                 # if raw_data[:self.data_header_len] == self.r_dat_header:
@@ -277,7 +277,6 @@ class TopticaSocket:
                     arr = np.frombuffer(_data, dtype=types)
 
                     # TODO: check if this is the correct way to do this (compare to original data)
-                    logging.debug(f"length is saved: {len(data.signal_1)}")
                     data.signal_1 = arr['signal_1'] / 20.0 - arr['signal_1'][0] / 20.0
                     data.signal_2 = arr['signal_2'] / 20.0 - arr['signal_2'][0] / 20.0
 
