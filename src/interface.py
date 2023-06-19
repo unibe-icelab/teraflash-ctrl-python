@@ -57,8 +57,10 @@ class TopticaSocket:
         self.send_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x02\x00\x00\x00\x00\x00\x00\x00'
         self.r_stat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x03\x00\x00\x00\x00\x00\x00\x02'
         self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe\xdc\x00\x00\x00\x01\x00\t\x1a\xe6\x03\xe8\x00\x00\x04L\x00\x00\x0c\xcc\xcc\xcc\x00\x00\x16\x0b\x00\x00]\xd8\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x01\x00\x00\x00\x00'
+        self.r_dat_header = b'\xcd\xef\x124x\x9a\xfe'
         self.data_header_len = 52
         self.read_header_len = 19
+        self.data_header_len = 7
 
         self.config_server_address = (ip, 6341)
         self.data_server_address = (ip, 6342)
@@ -275,6 +277,7 @@ class TopticaSocket:
                     arr = np.frombuffer(_data, dtype=types)
 
                     # TODO: check if this is the correct way to do this (compare to original data)
+                    logging.debug(f"length is saved: {len(data.signal_1)}")
                     data.signal_1 = arr['signal_1'] / 20.0 - arr['signal_1'][0] / 20.0
                     data.signal_2 = arr['signal_2'] / 20.0 - arr['signal_2'][0] / 20.0
 

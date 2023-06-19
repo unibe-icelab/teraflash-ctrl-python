@@ -23,7 +23,7 @@ if __name__ == "__main__":
         device.set_emitter(1, False)
 
     data = device.get_data()
-    print(data.signal_1)
+    print(len(data.signal_1))
     plt.plot(data.time, data.signal_1, color="black")
     plt.xlabel("time [ps]")
     plt.ylabel("amplitude [a.u.]")
