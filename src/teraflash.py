@@ -251,10 +251,20 @@ class TeraFlash:
         else:
             b = b'\x1a'
         cmd = (b, f"ACQUISITION : BEGIN {t_begin:.1f}")
+        measurement_was_running = self.acquisition
+        # need to stop the measurement before changing the range
+        logging.debug(f"stopping acquisition because of t_begin change! will restart late: {measurement_was_running}")
+        self.range_changed.set()
+        self.set_acq_stop()
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
         self.t_begin = t_begin
+        self.buffer_emptied.wait()
+        self.buffer_emptied.clear()
+        if measurement_was_running:
+            # if the measurement was running, restart it
+            self.set_acq_start()
 
     @staticmethod
     def nearest_entry(t_range: float, available_ranges: list):
