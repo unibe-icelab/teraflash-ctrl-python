@@ -215,7 +215,7 @@ class TopticaSocket:
                 if self.range_changed.is_set():
                     # range has changed and needs to be adjusted
                     # need to empty the read buffer
-                    client.settimeout(1)
+                    client.settimeout(2)
                     while self.running.is_set():
                         try:
                             client.recv(32100)
