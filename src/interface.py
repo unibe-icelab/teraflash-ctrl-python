@@ -158,7 +158,8 @@ class TopticaSocket:
                         self.cmd_ack.set()
                     elif "RANGE" in c:
                         # if we change the range, also change it for the data thread
-                        self.range = float(c[-6:])
+                        parts = c.split(" ")
+                        self.range = float(parts[-1])
                         data.time = np.linspace(self.t_begin, self.t_begin + self.range, 20 * int(self.range) + 1)
                         # wait for acknowledge
                         if not self.wait_for_answer(client):
@@ -166,7 +167,8 @@ class TopticaSocket:
                         self.cmd_ack.set()
                     elif "BEGIN" in c:
                         # if we change the range, also change it for the data thread
-                        self.t_begin = float(c[-7:])
+                        parts = c.split(" ")
+                        self.t_begin = float(parts[-1])
                         data.time = np.linspace(self.t_begin, self.t_begin + self.range, 20 * int(self.range) + 1)
                         # wait for acknowledge
                         if not self.wait_for_answer(client):
