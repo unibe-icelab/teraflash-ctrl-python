@@ -72,7 +72,10 @@ class TeraFlash:
             exit()
 
         # keep the computer awake
-        set_keepawake(keep_screen_awake=True)
+        try:
+            set_keepawake(keep_screen_awake=True)
+        except:
+            pass
 
         # configure tcp config socket
         self.config_thread = threading.Thread(target=socket.run_conf_tcp, args=(self.cmd_queue,))
@@ -118,7 +121,10 @@ class TeraFlash:
             self.data_thread.join()
             self.config_thread.join()
         # clear the keep-awake flag
-        unset_keepawake()
+        try:
+            unset_keepawake()
+        except:
+            pass
         logging.debug("[EXIT] disconnected from device")
 
     @staticmethod
