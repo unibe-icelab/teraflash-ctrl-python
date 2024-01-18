@@ -110,12 +110,12 @@ class TopticaSocket:
             _data = client.recv(length)[self.read_header_len:]
             if _data:
                 _data_decoded = _data.decode("utf-8", "ignore")
-                logging.debug(f"[TCP CONF] received: {_data_decoded}")
-
                 if "OK" in _data_decoded:
+                    logging.debug(f"[TCP CONF] received: {_data_decoded}")
                     return True
                 elif "MON" in _data_decoded:
                     return True
+                logging.debug(f"[TCP CONF] received: {_data_decoded}")
             else:
                 logging.error(f"[TCP CONF] No valid reply from device: {_data.decode('utf-8', 'ignore')}")
                 return False
