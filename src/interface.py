@@ -231,6 +231,8 @@ class TopticaSocket:
                 if self.range_changed.is_set():
                     continue
                 if not self.acq_running.is_set():
+                    # no data received
+                    time.sleep(1.0)
                     continue
                 raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len)
                 if not raw_data:
