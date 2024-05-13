@@ -234,6 +234,8 @@ class TopticaSocket:
                     continue
                 raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len)
                 if not raw_data:
+                    # no data received
+                    time.sleep(1.0)
                     continue
 
                 if raw_data[:self.data_header_len] != self.r_dat_header:
