@@ -62,6 +62,8 @@ class TopticaSocket:
         self.read_header_len = 19
         self.data_header_len = 7
 
+        self.avg_countdown = 0
+
         self.config_server_address = (ip, 6341)
         self.data_server_address = (ip, 6342)
 
@@ -296,6 +298,9 @@ class TopticaSocket:
                     data.freq = f / 1e12
                     data.fft_1_amp = np.abs(a)
                     data.fft_1_phase = np.angle(a)
+
+                    if self.avg_countdown > 0:
+                        self.avg_countdown -= 1
 
                     # do fft of signal 2
                     p = data.signal_2

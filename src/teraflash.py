@@ -16,7 +16,7 @@ class TeraFlash:
                  rng: int = 50,
                  t_begin: float = 1000.0,
                  avg: int = 2,
-                 log_file = None):
+                 log_file=None):
         """
             TeraFlash object used to handle all top level interactions with the user
         Args:
@@ -65,8 +65,8 @@ class TeraFlash:
         self.acq_running.clear()
 
         try:
-            socket = TopticaSocket(self.ip, self.running, self.connected, self.cmd_ack, self.buffer_emptied,
-                                   self.range_changed, self.acq_running)
+            self.socket = TopticaSocket(self.ip, self.running, self.connected, self.cmd_ack, self.buffer_emptied,
+                                        self.range_changed, self.acq_running)
         except ConnectionError:
             logging.error("[INIT] Device is not connected. Check cabling")
             exit()
@@ -339,6 +339,7 @@ class TeraFlash:
         # reset the average after it was changed
         self.reset_acq_avg()
         self.avg = avg
+        self.socket.avg_countdown = avg
 
     def reset_acq_avg(self):
         """
@@ -350,6 +351,11 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+        self.socket.avg_countdown = self.avg
+
+    def wait_for_avg(self):
+        while self.socket.avg_countdown > 0:
+            time.sleep(0.5)
 
     def set_laser(self, state: bool):
         """
