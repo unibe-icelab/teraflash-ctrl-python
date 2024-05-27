@@ -78,10 +78,10 @@ class TeraFlash:
             pass
 
         # configure tcp config socket
-        self.config_thread = threading.Thread(target=socket.run_conf_tcp, args=(self.cmd_queue,))
+        self.config_thread = threading.Thread(target=self.socket.run_conf_tcp, args=(self.cmd_queue,))
 
         # configure tcp data socket
-        self.data_thread = threading.Thread(target=socket.run_tcp_dat, args=(self.cmd_queue,))
+        self.data_thread = threading.Thread(target=self.socket.run_tcp_dat, args=(self.cmd_queue,))
 
         # launch threads
         self.data_thread.start()
