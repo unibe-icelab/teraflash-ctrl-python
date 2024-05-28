@@ -134,6 +134,9 @@ class TopticaSocket:
         global status
         global data
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            # Set the SO_REUSEADDR option to allow reuse of the port
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
             # bind server to the address (only works when the address exists)
             s.bind(self.config_server_address)
             logging.info(f"[TCP CONF] Starting server at address {self.config_server_address}")
@@ -204,6 +207,9 @@ class TopticaSocket:
         ])
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            # Set the SO_REUSEADDR option to allow reuse of the port
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+
             # bind server to the address (only works when the address exists)
             s.bind(self.data_server_address)
             logging.info(f"[TCP DAT] Starting server at address {self.data_server_address}")
