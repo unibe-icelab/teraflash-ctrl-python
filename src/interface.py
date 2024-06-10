@@ -9,6 +9,8 @@ import socket
 import subprocess
 import logging
 
+from math_utils import get_fft
+
 
 class DataContainer:
 
@@ -290,29 +292,24 @@ class TopticaSocket:
                     types = types.newbyteorder('>')
                     arr = np.frombuffer(_data, dtype=types)
 
-                    # TODO: check if this is the correct way to do this (compare to original data)
                     data.signal_1 = arr['signal_1'] / 20.0 - arr['signal_1'][0] / 20.0
                     data.signal_2 = arr['signal_2'] / 20.0 - arr['signal_2'][0] / 20.0
 
                     # do fft of signal 1
-                    t = data.time
-                    p = data.signal_1
-                    sample_rate = len(t) / (t[-1] - t[0]) * 1e12
-                    n = len(p)
-                    a = rfft(p)
-                    f = rfftfreq(n, 1 / sample_rate)
-                    data.freq = f / 1e12
-                    data.fft_1_amp = np.abs(a)
-                    data.fft_1_phase = np.angle(a)
+                    f, a, arg = get_fft(data.time, data.signal_1)
+                    data.freq = f
+                    data.fft_2_amp = a / np.max(a)
+                    data.fft_2_phase = arg
 
+                    # do fft of signal 2
+                    f, a, arg = get_fft(data.time, data.signal_2)
+                    data.fft_2_amp = a / np.max(a)
+                    data.fft_2_phase = arg
+
+                    # update avg countdown
                     if self.avg_countdown > 0:
                         self.avg_countdown -= 1
 
-                    # do fft of signal 2
-                    p = data.signal_2
-                    a = rfft(p)
-                    data.fft_2_amp = np.abs(a)
-                    data.fft_2_phase = np.angle(a)
                 except Exception as e:
                     logging.error(e)
                     logging.error(f"{len(data.signal_1)=}")
