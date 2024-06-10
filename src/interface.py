@@ -9,7 +9,7 @@ import socket
 import subprocess
 import logging
 
-from math_utils import get_fft
+from math_utils import get_fft, toptica_window
 
 
 class DataContainer:
@@ -296,13 +296,15 @@ class TopticaSocket:
                     data.signal_2 = arr['signal_2'] / 20.0 - arr['signal_2'][0] / 20.0
 
                     # do fft of signal 1
-                    f, a, arg = get_fft(data.time, data.signal_1)
+                    pulse = data.signal_1 * toptica_window(data.time)
+                    f, a, arg = get_fft(data.time, pulse)
                     data.freq = f
-                    data.fft_2_amp = a / np.max(a)
-                    data.fft_2_phase = arg
+                    data.fft_1_amp = a / np.max(a)
+                    data.fft_1_phase = arg
 
                     # do fft of signal 2
-                    f, a, arg = get_fft(data.time, data.signal_2)
+                    pulse = data.signal_2 * toptica_window(data.time)
+                    f, a, arg = get_fft(data.time, pulse)
                     data.fft_2_amp = a / np.max(a)
                     data.fft_2_phase = arg
 
