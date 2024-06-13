@@ -202,10 +202,8 @@ class TopticaSocket:
         """
         global data
         types = np.dtype([
-            ("signal_1", np.int16),
-            ("reserved_1", np.int16),
-            ("signal_2", np.int16),
-            ("reserved_2", np.int16),
+            ("signal_1", np.int32),
+            ("signal_2", np.int32),
         ])
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -288,7 +286,7 @@ class TopticaSocket:
                 #         else:
                 #             break
                 try:
-                    # decode received payload to 16 bit ints
+                    # decode received payload to 32 bit ints
                     types = types.newbyteorder('>')
                     arr = np.frombuffer(_data, dtype=types)
 
