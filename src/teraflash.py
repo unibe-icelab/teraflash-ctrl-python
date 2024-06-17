@@ -464,7 +464,7 @@ class TeraFlash:
             if detected_pulse:
                 # found a pulse
                 logging.info(f"Found pulse at {detected_pulse}")
-                self.set_acq_range(detected_pulse)
+                self.set_acq_begin(detected_pulse)
                 break
 
         # revert to previous settings
