@@ -290,8 +290,8 @@ class TopticaSocket:
                     types = types.newbyteorder('>')
                     arr = np.frombuffer(_data, dtype=types)
 
-                    data.signal_1 = arr['signal_1'] / 20.0 - arr['signal_1'][0] / 20.0
-                    data.signal_2 = arr['signal_2'] / 20.0 - arr['signal_2'][0] / 20.0
+                    data.signal_1 = arr['signal_1'] / 20.0 / 2 ** 16 - arr['signal_1'][0] / 20.0 / 2 ** 16
+                    data.signal_2 = arr['signal_2'] / 20.0 / 2 ** 16 - arr['signal_2'][0] / 20.0 / 2 ** 16
 
                     # do fft of signal 1
                     pulse = data.signal_1 * toptica_window(data.time)
