@@ -2,11 +2,14 @@ import logging
 import queue
 import threading
 import time
+
+import numpy as np
 from wakepy import set_keepawake, unset_keepawake
 import os
 
 from interface import TopticaSocket
 import interface
+from pulse_detection import detect_pulse
 
 
 class TeraFlash:
@@ -425,3 +428,50 @@ class TeraFlash:
         self.cmd_ack.clear()
         self.acq_running.clear()
         self.acquisition = False
+
+    def auto_pulse_detection(self, lower: int, upper: int, detection_window: int = 100, detection_avg: int = 10):
+        """
+
+        Auto detection function of pulse.
+        Spectrometer needs to be running (laser, emitter, acq) before calling this
+
+        :param lower: lower end of detection window
+        :param upper: upper end of detection window
+        :param detection_window: detection window width
+        :param detection_avg: detection avg to smooth out noise
+        :return: detected pulse or None
+        """
+
+        previous_range = self.range
+        previous_avg = self.avg
+        logging.info(f"Searching pulses in range from {lower} to {upper}")
+
+        # setup
+        self.set_acq_range(detection_window)
+        self.set_acq_avg(detection_avg)
+        self.reset_acq_avg()
+        detected_pulse = None
+
+        # search in range
+        for t_begin in range(lower, upper, detection_window):
+            self.set_acq_begin(t_begin)
+            self.reset_acq_avg()
+            self.wait_for_avg()
+
+            timestamp = self.get_data().time.astype(np.float32)
+            pulse = self.get_data().signal_1.astype(np.float32)
+            detected_pulse = detect_pulse(timestamp, pulse)
+            if detected_pulse:
+                # found a pulse
+                logging.info(f"Found pulse at {detected_pulse}")
+                self.set_acq_range(detected_pulse)
+                break
+
+        # revert to previous settings
+        self.set_acq_avg(previous_avg)
+        self.set_acq_range(previous_range)
+
+        # if no pulse has been detected, raise error
+        if not detected_pulse:
+            logging.error(f"No pulse detected in range from {lower} to {upper}")
+            raise Exception(f"No pulse detected in the range from {lower} to {upper}")
