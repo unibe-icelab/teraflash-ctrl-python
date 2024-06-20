@@ -358,7 +358,7 @@ class TeraFlash:
 
     def wait_for_avg(self):
         while self.socket.avg_countdown > 0:
-            time.sleep(0.5)
+            time.sleep(0.1)
 
     def set_laser(self, state: bool):
         """
