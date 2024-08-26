@@ -34,7 +34,7 @@ def zero_padding(t, p, do_padding=True):
 
 def get_fft(t, p, padding=True):
     t = np.array(t)
-    p = np.array(p)
+    p = np.array(p) * toptica_window(t)
     t, p = zero_padding(t, p, padding)
 
     sample_rate = len(t) / (t[-1] - t[0]) * 1e12
