@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.fft import rfft, rfftfreq
+from numpy.fft import rfft, rfftfreq
 
 
 def blackman_func(n, M):
@@ -32,9 +32,9 @@ def zero_padding(t, p, do_padding=True):
     return t, p
 
 
-def get_fft(t, p, padding=True):
+def get_fft(t, p, padding=True, window_start=1, window_end=7):
     t = np.array(t)
-    p = np.array(p) * toptica_window(t)
+    p = np.array(p) * toptica_window(t, window_start, window_end)
     t, p = zero_padding(t, p, padding)
 
     sample_rate = len(t) / (t[-1] - t[0]) * 1e12
