@@ -224,6 +224,7 @@ class TopticaSocket:
                     # need to empty the read buffer
                     client.settimeout(2)
                     while self.running.is_set():
+                        logging.debug(f"emptying buffer...")
                         try:
                             client.recv(32100)
                         except socket.timeout:
