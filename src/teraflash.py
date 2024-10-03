@@ -258,13 +258,20 @@ class TeraFlash:
         # need to stop the measurement before changing the range
         logging.debug(f"stopping acquisition because of t_begin change! will restart late: {measurement_was_running}")
         self.range_changed.set()
+        logging.debug(f"range changed set")
         self.set_acq_stop()
+        logging.debug(f"stopped acq")
         self.cmd_queue.put(cmd)
+        logging.debug(f"put cmd")
         self.cmd_ack.wait()
+        logging.debug(f"wait for cmd ack")
         self.cmd_ack.clear()
+        logging.debug(f"set t_begin")
         self.t_begin = t_begin
+        logging.debug(f"waiting for buffer to be emptied")
         self.buffer_emptied.wait()
         self.buffer_emptied.clear()
+        logging.debug(f"buffer is emptied")
         if measurement_was_running:
             # if the measurement was running, restart it
             self.set_acq_start()

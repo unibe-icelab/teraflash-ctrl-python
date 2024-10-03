@@ -216,19 +216,20 @@ class TopticaSocket:
             s.listen()
             # accept connection from device
             client, addr = s.accept()
+            client.settimeout(2)
+
             logging.info(f"[TCP DAT] Connected by client with address {addr}")
             # now we are connected
             while self.running.is_set():
                 if self.range_changed.is_set():
                     # range has changed and needs to be adjusted
                     # need to empty the read buffer
-                    client.settimeout(2)
                     while self.running.is_set():
+                        logging.debug(f"emptying buffer...")
                         try:
                             client.recv(32100)
                         except socket.timeout:
                             break
-                    client.settimeout(None)
                     self.buffer_emptied.set()
                     self.range_changed.clear()
 
@@ -241,7 +242,10 @@ class TopticaSocket:
                     # no data received
                     time.sleep(1.0)
                     continue
-                raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len)
+                try:
+                    raw_data = client.recv(2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len)
+                except socket.timeout:
+                    continue
                 if not raw_data:
                     # no data received
                     time.sleep(1.0)
@@ -253,12 +257,16 @@ class TopticaSocket:
                 if len(raw_data) != 2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len:
                     skip_this = False
                     while self.running.is_set():
-                        to_append = client.recv(
-                            2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len - len(raw_data))
-                        raw_data += to_append
-                        if len(raw_data) == 2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len:
-                            break
-                        if len(raw_data) == 2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len:
+                        try:
+                            to_append = client.recv(
+                                2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len - len(raw_data))
+                            raw_data += to_append
+                            if len(raw_data) == 2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len:
+                                break
+                            if len(raw_data) == 2 * 4 * (20 * int(self.range) + 1) + self.full_data_header_len:
+                                skip_this = True
+                                break
+                        except socket.timeout:
                             skip_this = True
                             break
                     if skip_this:
