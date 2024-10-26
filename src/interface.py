@@ -33,6 +33,7 @@ class DataContainer:
 
 # global variables for thread communication
 data = DataContainer()
+n_avg = 0
 status = ""
 
 
@@ -44,7 +45,8 @@ class TopticaSocket:
                  cmd_ack: threading.Event,
                  buffer_emptied: threading.Event,
                  range_changed: threading.Event,
-                 acq_running: threading.Event):
+                 acq_running: threading.Event,
+                 avg_data: threading.Event):
         """
             TCP Socket struct, used for the communication between the server (Computer) and the client (instrument)
             with two TCP connections (one for configuration and one for data transmission)
@@ -77,6 +79,7 @@ class TopticaSocket:
         self.range_changed = range_changed
         self.buffer_emptied = buffer_emptied
         self.acq_running = acq_running
+        self.avg_data = avg_data
 
         if not self.ping(ip):
             raise ConnectionError
@@ -200,6 +203,7 @@ class TopticaSocket:
             Data TCP thread on port 6342. This handles receives all the streamed data from the device and decodes it.
         """
         global data
+        global n_avg
         types = np.dtype([
             ("signal_1", np.int32),
             ("signal_2", np.int32),
@@ -297,8 +301,17 @@ class TopticaSocket:
                     types = types.newbyteorder('>')
                     arr = np.frombuffer(_data, dtype=types)
 
-                    data.signal_1 = arr['signal_1'] / 20.0 / 2 ** 16 - arr['signal_1'][0] / 20.0 / 2 ** 16
-                    data.signal_2 = arr['signal_2'] / 20.0 / 2 ** 16 - arr['signal_2'][0] / 20.0 / 2 ** 16
+                    signal_1 = arr['signal_1'] / 20.0 / 2 ** 16 - arr['signal_1'][0] / 20.0 / 2 ** 16
+                    signal_2 = arr['signal_2'] / 20.0 / 2 ** 16 - arr['signal_2'][0] / 20.0 / 2 ** 16
+
+                    if self.avg_data.is_set():
+                        data.signal_1 += signal_1
+                        data.signal_2 += signal_2
+                        n_avg += 1
+                    else:
+                        data.signal_1 = signal_1
+                        data.signal_2 = signal_2
+                        n_avg = 0
 
                     # do fft of signal 1
                     pulse = data.signal_1
