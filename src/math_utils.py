@@ -17,34 +17,67 @@ def toptica_window(t, start=1, end=7):
     return window
 
 
-def zero_padding(t, p, do_padding=True):
-    dt = round(t[1] - t[0], 2)
-    df = 1 / (dt * len(t))
-    df_padded = 0.01
-    pd = int(1 / (dt * df_padded))
-    if pd > len(t) and do_padding:
-        padding_length = (pd - len(t))
-        padding = np.array([0.0] * padding_length)
-        dt = t[1] - t[0]
-        # Extend the time axis
-        t = np.linspace(t[0], t[-1] + padding_length * dt, len(t) + padding_length)
-        p = np.append(p, padding)
-    return t, p
+def zero_padding(time, pulse, df_padded=0.01):
+    # Calculate the total time span of the original data
+    T = time[-1] - time[0]
+
+    # Determine the required number of points to achieve the desired frequency resolution
+    N_padded = int(np.ceil(T / df_padded))
+
+    # Find the length of the original signal
+    N_original = len(pulse)
+
+    # Calculate the original time step (assuming uniform sampling in the time array)
+    dt = time[1] - time[0]
+
+    # If padding is needed, apply zero-padding and extend the time array
+    if N_padded > N_original:
+        # Pad the pulse array with zeros to match the required length
+        padded_pulse = np.pad(pulse, (0, N_padded - N_original), mode='constant')
+
+        # Create an extended time array with the same timestep (dt)
+        extended_time = np.arange(time[0], time[0] + N_padded * dt, dt)
+    else:
+        # If no padding is needed, return the original arrays
+        padded_pulse = pulse
+        extended_time = time
+
+    return extended_time, padded_pulse
 
 
-def get_fft(t, p, padding=True, window_start=1, window_end=7):
+def unwrap_phase(phase):
+    threshold = np.pi
+    N = len(phase)
+
+    for i in range(N - 1):
+        if phase[i + 1] - phase[i] > threshold:
+            for j in range(i + 1, N):
+                phase[j] -= 2 * np.pi
+        elif phase[i + 1] - phase[i] < -threshold:
+            for j in range(i + 1, N):
+                phase[j] += 2 * np.pi
+    return phase
+
+
+def get_fft(t, p, df=0.01, window_start=1, window_end=7, return_td=False):
     t = np.array(t)
     p = np.array(p) * toptica_window(t, window_start, window_end)
-    t, p = zero_padding(t, p, padding)
+    t, p = zero_padding(t, p, df_padded=df)
 
-    sample_rate = len(t) / (t[-1] - t[0]) * 1e12
+    sample_rate = 1 / (t[1] - t[0]) * 1e12
     n = len(p)
     fft = rfft(p)
     a = np.abs(fft)
     angle = np.angle(fft)
     arg = np.unwrap(angle)
     f = rfftfreq(n, 1 / sample_rate) / 1e12
-    return f, a, arg
+    a = a[f >= 0.1]
+    arg = arg[f >= 0.1]
+    f = f[f >= 0.1]
+    if return_td:
+        return t,p,f, a, np.abs(arg)
+    else:
+        return f, a, np.abs(arg)
 
 
 def get_ifft(frequencies, amplitudes, phases, t0=0):
