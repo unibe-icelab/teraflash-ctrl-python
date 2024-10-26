@@ -305,8 +305,12 @@ class TopticaSocket:
                     signal_2 = arr['signal_2'] / 20.0 / 2 ** 16 - arr['signal_2'][0] / 20.0 / 2 ** 16
 
                     if self.avg_data.is_set():
-                        data.signal_1 += signal_1
-                        data.signal_2 += signal_2
+                        if data.signal_1.shape == signal_1.shape:
+                            data.signal_1 += signal_1
+                        else:
+                            data.signal_1 = signal_1
+                        if data.signal_2.shape == signal_2.shape:
+                            data.signal_2 += signal_2
                         n_avg += 1
                     else:
                         data.signal_1 = signal_1
