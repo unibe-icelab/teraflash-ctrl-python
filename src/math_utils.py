@@ -1,5 +1,5 @@
 import numpy as np
-from numpy.fft import rfft, rfftfreq, irfft
+from scipy.fft import rfft, rfftfreq, irfft
 
 
 def blackman_func(n, M):
@@ -21,27 +21,26 @@ def zero_padding(time, pulse, df_padded=0.01):
     # Calculate the total time span of the original data
     T = time[-1] - time[0]
 
-    # Determine the required number of points to achieve the desired frequency resolution
-    N_padded = int(np.ceil(T / df_padded))
-
     # Find the length of the original signal
     N_original = len(pulse)
 
     # Calculate the original time step (assuming uniform sampling in the time array)
     dt = time[1] - time[0]
 
+    N_padded = (1 / df_padded - T) / dt
+
+    N_padded = int(N_padded) + N_original
+
     # If padding is needed, apply zero-padding and extend the time array
     if N_padded > N_original:
         # Pad the pulse array with zeros to match the required length
         padded_pulse = np.pad(pulse, (0, N_padded - N_original), mode='constant')
-
         # Create an extended time array with the same timestep (dt)
         extended_time = np.arange(time[0], time[0] + N_padded * dt, dt)
     else:
         # If no padding is needed, return the original arrays
         padded_pulse = pulse
         extended_time = time
-
     return extended_time, padded_pulse
 
 
@@ -59,7 +58,7 @@ def unwrap_phase(phase):
     return phase
 
 
-def get_fft(t, p, df=0.01, window_start=1, window_end=7, return_td=False):
+def get_fft(t, p, df=0.01, window_start=1, window_end=2, return_td=False):
     t = np.array(t)
     p = np.array(p) * toptica_window(t, window_start, window_end)
     t, p = zero_padding(t, p, df_padded=df)
@@ -71,11 +70,11 @@ def get_fft(t, p, df=0.01, window_start=1, window_end=7, return_td=False):
     angle = np.angle(fft)
     arg = np.unwrap(angle)
     f = rfftfreq(n, 1 / sample_rate) / 1e12
-    a = a[f >= 0.1]
-    arg = arg[f >= 0.1]
-    f = f[f >= 0.1]
+    # a = a[f >= 0.1]
+    # arg = arg[f >= 0.1]
+    # f = f[f >= 0.1]
     if return_td:
-        return t,p,f, a, np.abs(arg)
+        return t, p, f, a, np.abs(arg)
     else:
         return f, a, np.abs(arg)
 
@@ -88,7 +87,7 @@ def get_ifft(frequencies, amplitudes, phases, t0=0):
     N = len(signal)  # Number of samples
     T = 1.0 / sample_rate  # Sample spacing (inverse of the sampling rate)
     time = np.linspace(0.0, N * T, N, endpoint=False)
-    return time + t0, signal
+    return t0 - time + time[-1], signal
 
 
 if __name__ == '__main__':
