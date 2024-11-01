@@ -60,16 +60,18 @@ class TeraFlash:
         self.buffer_emptied = threading.Event()
         self.range_changed = threading.Event()
         self.acq_running = threading.Event()
+        self.avg_data = threading.Event()
         self.cmd_ack.clear()
         self.connected.clear()
         self.running.set()
         self.buffer_emptied.set()
         self.range_changed.clear()
         self.acq_running.clear()
+        self.avg_data.clear()
 
         try:
             self.socket = TopticaSocket(self.ip, self.running, self.connected, self.cmd_ack, self.buffer_emptied,
-                                        self.range_changed, self.acq_running)
+                                        self.range_changed, self.acq_running, self.avg_data)
         except ConnectionError:
             logging.error("[INIT] Device is not connected. Check cabling")
             exit()
@@ -129,6 +131,19 @@ class TeraFlash:
         except:
             pass
         logging.debug("[EXIT] disconnected from device")
+
+    @staticmethod
+    def reset_tcp_avg():
+        # reset global variable avg
+        shape = interface.data.signal_1.shape
+        interface.data.signal_1 = np.zeros(shape)
+        interface.data.signal_2 = np.zeros(shape)
+        interface.n_avg = 0
+
+    @staticmethod
+    def get_n_avg():
+        # return global variable
+        return interface.n_avg
 
     @staticmethod
     def get_data():
