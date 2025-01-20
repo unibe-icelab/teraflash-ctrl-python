@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>src.teraflash &mdash; teraflash-ctrl-python 0.1.0 documentation</title>
+  <title>src.teraflash &mdash; teraflash-ctrl-python 1.2.0 documentation</title>
       <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -71,11 +71,13 @@
 <span class="kn">import</span> <span class="nn">queue</span>
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">time</span>
-<span class="kn">from</span> <span class="nn">wakepy</span> <span class="kn">import</span> <span class="n">set_keepawake</span><span class="p">,</span> <span class="n">unset_keepawake</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">os</span>
 
 <span class="kn">from</span> <span class="nn">interface</span> <span class="kn">import</span> <span class="n">TopticaSocket</span>
 <span class="kn">import</span> <span class="nn">interface</span>
+<span class="kn">from</span> <span class="nn">pulse_detection</span> <span class="kn">import</span> <span class="n">detect_pulse</span>
 
 
 <div class="viewcode-block" id="TeraFlash"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash">[docs]</a><span class="k">class</span> <span class="nc">TeraFlash</span><span class="p">:</span>
@@ -85,7 +87,7 @@
                  <span class="n">rng</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
                  <span class="n">t_begin</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1000.0</span><span class="p">,</span>
                  <span class="n">avg</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">,</span>
-                 <span class="n">log_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+                 <span class="n">log_file</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">            TeraFlash object used to handle all top level interactions with the user</span>
 <span class="sd">        Args:</span>
@@ -123,26 +125,30 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_emptied</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acq_running</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">avg_data</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Event</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_emptied</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acq_running</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">avg_data</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
 
         <span class="k">try</span><span class="p">:</span>
-            <span class="n">socket</span> <span class="o">=</span> <span class="n">TopticaSocket</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ip</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">socket</span> <span class="o">=</span> <span class="n">TopticaSocket</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ip</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">running</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">buffer_emptied</span><span class="p">,</span>
+                                        <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">acq_running</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">avg_data</span><span class="p">)</span>
         <span class="k">except</span> <span class="ne">ConnectionError</span><span class="p">:</span>
             <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;[INIT] Device is not connected. Check cabling&quot;</span><span class="p">)</span>
             <span class="n">exit</span><span class="p">()</span>
 
-        <span class="c1"># keep the computer awake</span>
-        <span class="n">set_keepawake</span><span class="p">(</span><span class="n">keep_screen_awake</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-
         <span class="c1"># configure tcp config socket</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">config_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">run_conf_tcp</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="p">,))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">config_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">run_conf_tcp</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="p">,))</span>
 
         <span class="c1"># configure tcp data socket</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">data_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">socket</span><span class="o">.</span><span class="n">run_tcp_dat</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">run_tcp_dat</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="p">,))</span>
 
         <span class="c1"># launch threads</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">data_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
@@ -153,6 +159,9 @@
 
         <span class="c1"># start setup sequence</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+
+        <span class="c1"># wait some time to gather data</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -178,9 +187,20 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">connected</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">data_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">config_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
-        <span class="c1"># clear the keep-awake flag</span>
-        <span class="n">unset_keepawake</span><span class="p">()</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;[EXIT] disconnected from device&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TeraFlash.reset_tcp_avg"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.reset_tcp_avg">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">reset_tcp_avg</span><span class="p">():</span>
+        <span class="c1"># reset global variable avg</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">interface</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">signal_1</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">interface</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">signal_1</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">interface</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">signal_2</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">interface</span><span class="o">.</span><span class="n">n_avg</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="TeraFlash.get_n_avg"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.get_n_avg">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_n_avg</span><span class="p">():</span>
+        <span class="c1"># return global variable</span>
+        <span class="k">return</span> <span class="n">interface</span><span class="o">.</span><span class="n">n_avg</span></div>
 
 <div class="viewcode-block" id="TeraFlash.get_data"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.get_data">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">get_data</span><span class="p">():</span>
@@ -214,6 +234,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">get_sys_monitor</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">get_sys_status</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;[INIT] device is ready.&quot;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TeraFlash.disconnect"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.disconnect">[docs]</a>    <span class="k">def</span> <span class="nf">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -305,10 +326,27 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1a</span><span class="s1">&#39;</span>
         <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;ACQUISITION : BEGIN </span><span class="si">{</span><span class="n">t_begin</span><span class="si">:</span><span class="s2">.1f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="n">measurement_was_running</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">acquisition</span>
+        <span class="c1"># need to stop the measurement before changing the range</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;stopping acquisition because of t_begin change! will restart late: </span><span class="si">{</span><span class="n">measurement_was_running</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;range changed set&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_stop</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;stopped acq&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;put cmd&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;wait for cmd ack&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span> <span class="o">=</span> <span class="n">t_begin</span></div>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;set t_begin&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span> <span class="o">=</span> <span class="n">t_begin</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;waiting for buffer to be emptied&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_emptied</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_emptied</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;buffer is emptied&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">measurement_was_running</span><span class="p">:</span>
+            <span class="c1"># if the measurement was running, restart it</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_start</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TeraFlash.nearest_entry"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.nearest_entry">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">nearest_entry</span><span class="p">(</span><span class="n">t_range</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">available_ranges</span><span class="p">:</span> <span class="nb">list</span><span class="p">):</span>
@@ -347,15 +385,16 @@
             <span class="n">b</span> <span class="o">=</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x1a</span><span class="s1">&#39;</span>
         <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;ACQUISITION : RANGE </span><span class="si">{</span><span class="n">t_range</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">measurement_was_running</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">acquisition</span>
-        <span class="c1"># need to stop the measurement before changeing the range</span>
+        <span class="c1"># need to stop the measurement before changing the range</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;stopping acquisition because of range change! will restart late: </span><span class="si">{</span><span class="n">measurement_was_running</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_stop</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">!=</span> <span class="n">t_range</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">range_changed</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="n">t_range</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_emptied</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buffer_emptied</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">measurement_was_running</span><span class="p">:</span>
             <span class="c1"># if the measurement was running, restart it</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_start</span><span class="p">()</span></div>
@@ -381,7 +420,8 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
         <span class="c1"># reset the average after it was changed</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reset_acq_avg</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">avg</span> <span class="o">=</span> <span class="n">avg</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">avg</span> <span class="o">=</span> <span class="n">avg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">avg_countdown</span> <span class="o">=</span> <span class="n">avg</span></div>
 
 <div class="viewcode-block" id="TeraFlash.reset_acq_avg"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.reset_acq_avg">[docs]</a>    <span class="k">def</span> <span class="nf">reset_acq_avg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -392,7 +432,12 @@
         <span class="n">cmd</span> <span class="o">=</span> <span class="p">(</span><span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x17</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s2">&quot;ACQUISITION : RESET AVG&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">avg_countdown</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">avg</span></div>
+
+<div class="viewcode-block" id="TeraFlash.wait_for_avg"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.wait_for_avg">[docs]</a>    <span class="k">def</span> <span class="nf">wait_for_avg</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">while</span> <span class="bp">self</span><span class="o">.</span><span class="n">socket</span><span class="o">.</span><span class="n">avg_countdown</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TeraFlash.set_laser"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_laser">[docs]</a>    <span class="k">def</span> <span class="nf">set_laser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">bool</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
@@ -448,6 +493,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acq_running</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">acquisition</span> <span class="o">=</span> <span class="kc">True</span></div>
 
 <div class="viewcode-block" id="TeraFlash.set_acq_stop"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.set_acq_stop">[docs]</a>    <span class="k">def</span> <span class="nf">set_acq_stop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -459,7 +505,55 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">acquisition</span> <span class="o">=</span> <span class="kc">False</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acq_running</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">acquisition</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="TeraFlash.auto_pulse_detection"><a class="viewcode-back" href="../../src.html#src.teraflash.TeraFlash.auto_pulse_detection">[docs]</a>    <span class="k">def</span> <span class="nf">auto_pulse_detection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lower</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">upper</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">detection_window</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">detection_avg</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+
+<span class="sd">        Auto detection function of pulse.</span>
+<span class="sd">        Spectrometer needs to be running (laser, emitter, acq) before calling this</span>
+
+<span class="sd">        :param lower: lower end of detection window</span>
+<span class="sd">        :param upper: upper end of detection window</span>
+<span class="sd">        :param detection_window: detection window width</span>
+<span class="sd">        :param detection_avg: detection avg to smooth out noise</span>
+<span class="sd">        :return: detected pulse or None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">previous_range</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span>
+        <span class="n">previous_avg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">avg</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Searching pulses in range from </span><span class="si">{</span><span class="n">lower</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">upper</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># setup</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_range</span><span class="p">(</span><span class="n">detection_window</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_avg</span><span class="p">(</span><span class="n">detection_avg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reset_acq_avg</span><span class="p">()</span>
+        <span class="n">detected_pulse</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="c1"># search in range</span>
+        <span class="k">for</span> <span class="n">t_begin</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">lower</span><span class="p">,</span> <span class="n">upper</span><span class="p">,</span> <span class="n">detection_window</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_begin</span><span class="p">(</span><span class="n">t_begin</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">reset_acq_avg</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">wait_for_avg</span><span class="p">()</span>
+
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">time</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="n">pulse</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data</span><span class="p">()</span><span class="o">.</span><span class="n">signal_1</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+            <span class="n">detected_pulse</span> <span class="o">=</span> <span class="n">detect_pulse</span><span class="p">(</span><span class="n">timestamp</span><span class="p">,</span> <span class="n">pulse</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">detected_pulse</span><span class="p">:</span>
+                <span class="c1"># found a pulse</span>
+                <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found pulse at </span><span class="si">{</span><span class="n">detected_pulse</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_begin</span><span class="p">(</span><span class="n">detected_pulse</span><span class="p">)</span>
+                <span class="k">break</span>
+
+        <span class="c1"># revert to previous settings</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_avg</span><span class="p">(</span><span class="n">previous_avg</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">set_acq_range</span><span class="p">(</span><span class="n">previous_range</span><span class="p">)</span>
+
+        <span class="c1"># if no pulse has been detected, raise error</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">detected_pulse</span><span class="p">:</span>
+            <span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No pulse detected in range from </span><span class="si">{</span><span class="n">lower</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">upper</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No pulse detected in the range from </span><span class="si">{</span><span class="n">lower</span><span class="si">}</span><span class="s2"> to </span><span class="si">{</span><span class="n">upper</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

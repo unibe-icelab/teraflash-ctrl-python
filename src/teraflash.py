@@ -4,7 +4,6 @@ import threading
 import time
 
 import numpy as np
-from wakepy import set_keepawake, unset_keepawake
 import os
 
 from interface import TopticaSocket
@@ -76,12 +75,6 @@ class TeraFlash:
             logging.error("[INIT] Device is not connected. Check cabling")
             exit()
 
-        # keep the computer awake
-        try:
-            set_keepawake(keep_screen_awake=True)
-        except:
-            pass
-
         # configure tcp config socket
         self.config_thread = threading.Thread(target=self.socket.run_conf_tcp, args=(self.cmd_queue,))
 
@@ -125,11 +118,6 @@ class TeraFlash:
         if self.connected.is_set():
             self.data_thread.join()
             self.config_thread.join()
-        # clear the keep-awake flag
-        try:
-            unset_keepawake()
-        except:
-            pass
         logging.debug("[EXIT] disconnected from device")
 
     @staticmethod
