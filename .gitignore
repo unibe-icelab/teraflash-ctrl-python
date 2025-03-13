@@ -1,1 +1,8 @@
 /logs/
+__pycache__/
+
+# Ignore egg-info directories
+*.egg-info/
+
+# Optionally, ignore egg files
+*.egg
