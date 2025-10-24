@@ -84,7 +84,7 @@ class TeraFlash:
         self.config_thread = threading.Thread(target=self.socket.run_conf_tcp, args=(self.cmd_queue,))
 
         # configure tcp data socket
-        self.data_thread = threading.Thread(target=self.socket.run_tcp_dat, args=(self.cmd_queue,self.config_queue))
+        self.data_thread = threading.Thread(target=self.socket.run_tcp_dat, args=(self.cmd_queue, self.config_queue))
 
         # launch threads
         self.data_thread.start()
@@ -159,7 +159,7 @@ class TeraFlash:
         self.get_sys_status()
 
         # wait for status to be available
-        while self.get_status() == "":
+        while "TIA-Sens(nA):" not in self.get_status():
             time.sleep(1)
 
         self.allowed_antenna_ranges = self.extract_tia_sens(self.get_status())
@@ -207,14 +207,14 @@ class TeraFlash:
 
         match = re.search(r"TIA-Sens\(nA\):\s*([0-9.,\s]+)", text)
         if not match:
-            logging.error(f"no supported ranges found: {text}")
+            logging.error(f"[INIT] no supported ranges found: {text}")
             return []
 
         values_str = match.group(1)
 
         # Split by comma, trim, and convert to floats
         values = [str(float(v.strip())) for v in values_str.split(",") if v.strip()]
-        logging.debug(f"[OK] supported ranges: {values}")
+        logging.debug(f"[INIT] supported antenna ranges: {values}")
 
         return values
 
