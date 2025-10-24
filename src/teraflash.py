@@ -2,6 +2,7 @@ import logging
 import queue
 import threading
 import time
+from typing import Optional
 
 import numpy as np
 import os
