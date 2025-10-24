@@ -160,8 +160,10 @@ class TeraFlash:
 
         # wait for status to be available
         counter = 0
-        while "TIA-Sens(nA):" not in self.get_status():
-            logging.info(f"[...] waiting for status... {self.get_status()}")
+        status = self.get_status()
+        while "TIA-Sens(nA):" not in status:
+            status = self.get_status()
+            logging.info(f"[...] waiting for status... {status}")
             time.sleep(1)
             counter += 1
             if counter > 3:
@@ -169,7 +171,7 @@ class TeraFlash:
                 self.get_sys_status()
                 counter = 0
 
-        self.allowed_antenna_ranges = self.extract_tia_sens(self.get_status())
+        self.allowed_antenna_ranges = self.extract_tia_sens(status)
         self.set_channel()
         self.set_mode()
         self.set_transmission()
