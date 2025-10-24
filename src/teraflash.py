@@ -266,6 +266,8 @@ class TeraFlash:
             sets the antenna range by value (needs to be an allowed value of the instrument)
         """
 
+        print(self.allowed_antenna_ranges)
+        print(range)
         i = self.allowed_antenna_ranges.index(str(range))
         self.antenna_range = range
         self.config_queue.put(self.antenna_range)
