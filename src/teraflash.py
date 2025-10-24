@@ -212,8 +212,6 @@ class TeraFlash:
 
         values_str = match.group(1)
 
-        print("Extracted TIA-Sens:", values_str)
-
         # Split by comma, trim, and convert to floats
         values = [str(float(v.strip())) for v in values_str.split(",") if v.strip()]
         logging.debug(f"[OK] supported ranges: {values}")
