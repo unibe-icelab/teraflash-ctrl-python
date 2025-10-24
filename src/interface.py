@@ -72,6 +72,7 @@ class TopticaSocket:
 
         self.t_begin = 1000.00
         self.range = 50
+        self.antenna_range = 1000.0
 
         self.running = running
         self.connected = connected
@@ -183,6 +184,15 @@ class TopticaSocket:
                         if not self.wait_for_answer(client):
                             return
                         self.cmd_ack.set()
+                    elif "TIA" in c:
+                        # if we change the range, also change it for the data thread
+                        parts = c.split(" ")
+                        self.t_begin = float(parts[-1])
+                        data.time = np.linspace(self.t_begin, self.t_begin + self.range, 20 * int(self.range) + 1)
+                        # wait for acknowledge
+                        if not self.wait_for_answer(client):
+                            return
+                        self.cmd_ack.set()
                     else:
                         # wait for acknowledge
                         if not self.wait_for_answer(client):
@@ -198,7 +208,7 @@ class TopticaSocket:
                         return
                 time.sleep(0.25)
 
-    def run_tcp_dat(self, cmd_queue: Queue):
+    def run_tcp_dat(self, cmd_queue: Queue, config_queue: Queue):
         """
             Data TCP thread on port 6342. This handles receives all the streamed data from the device and decodes it.
         """
@@ -208,6 +218,7 @@ class TopticaSocket:
             ("signal_1", np.int32),
             ("signal_2", np.int32),
         ])
+        antenna_range = 1000.0
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             # Set the SO_REUSEADDR option to allow reuse of the port
@@ -301,8 +312,14 @@ class TopticaSocket:
                     types = types.newbyteorder('>')
                     arr = np.frombuffer(_data, dtype=types)
 
-                    signal_1 = arr['signal_1'] / 20.0 / 2 ** 16 - arr['signal_1'][0] / 20.0 / 2 ** 16
-                    signal_2 = arr['signal_2'] / 20.0 / 2 ** 16 - arr['signal_2'][0] / 20.0 / 2 ** 16
+                    if not config_queue.empty():
+                        antenna_range = config_queue.get()
+
+                    scale_factor = 20.0 * 1000.0 / antenna_range;
+
+                    # TODO: make subtracting offset optional.
+                    signal_1 = arr['signal_1'] / scale_factor / 2 ** 16 - arr['signal_1'][0] / scale_factor / 2 ** 16
+                    signal_2 = arr['signal_2'] / scale_factor / 2 ** 16 - arr['signal_2'][0] / scale_factor / 2 ** 16
 
                     if self.avg_data.is_set():
                         if data.signal_1.shape == signal_1.shape:

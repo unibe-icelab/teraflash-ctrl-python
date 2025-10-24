@@ -48,7 +48,7 @@ class TeraFlash:
         self.laser = False
         self.emitter = [False, False]
         self.acquisition = False
-        self.allowed_antenna_ranges = [antenna_range]
+        self.allowed_antenna_ranges = [str(antenna_range)]
         self.antenna_range = antenna_range
         self.range = rng
         self.t_begin = t_begin
@@ -57,6 +57,7 @@ class TeraFlash:
         self.ip = ip
 
         self.cmd_queue = queue.Queue()
+        self.config_queue = queue.Queue()
         self.running = threading.Event()
         self.connected = threading.Event()
         self.cmd_ack = threading.Event()
@@ -83,7 +84,7 @@ class TeraFlash:
         self.config_thread = threading.Thread(target=self.socket.run_conf_tcp, args=(self.cmd_queue,))
 
         # configure tcp data socket
-        self.data_thread = threading.Thread(target=self.socket.run_tcp_dat, args=(self.cmd_queue,))
+        self.data_thread = threading.Thread(target=self.socket.run_tcp_dat, args=(self.cmd_queue,self.config_queue))
 
         # launch threads
         self.data_thread.start()
@@ -210,7 +211,7 @@ class TeraFlash:
 
         values_str = match.group(1)
         # Split by comma, trim, and convert to floats
-        values = [float(v.strip()) for v in values_str.split(",") if v.strip()]
+        values = [v.strip() for v in values_str.split(",") if v.strip()]
         logging.debug(f"[OK] supported ranges: {values}")
 
         return values
@@ -265,7 +266,9 @@ class TeraFlash:
             sets the antenna range by value (needs to be an allowed value of the instrument)
         """
 
-        i = self.allowed_antenna_ranges.index(range)
+        i = self.allowed_antenna_ranges.index(str(range))
+        self.antenna_range = range
+        self.config_queue.put(self.antenna_range)
 
         if i == 0:
             string = "FULL"
@@ -283,6 +286,10 @@ class TeraFlash:
         """
             sets the antenna range by index
         """
+
+        self.antenna_range = float(self.allowed_antenna_ranges[i])
+        self.config_queue.put(self.antenna_range)
+
         if i == 0:
             string = "FULL"
         else:
