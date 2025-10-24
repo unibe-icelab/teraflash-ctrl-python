@@ -158,7 +158,7 @@ class TeraFlash:
         self.get_sys_status()
 
         # wait for status to be available
-        while self.get_status() is None:
+        while self.get_status() == "":
             time.sleep(1)
 
         self.allowed_antenna_ranges = self.extract_tia_sens(self.get_status())
