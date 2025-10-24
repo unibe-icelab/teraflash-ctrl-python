@@ -17,6 +17,7 @@ class TeraFlash:
                  ip: str = "169.254.84.101",
                  rng: int = 50,
                  t_begin: float = 1000.0,
+                 antenna_range: float = 1000.0,
                  avg: int = 2,
                  log_file=None):
         """
@@ -46,6 +47,8 @@ class TeraFlash:
         self.laser = False
         self.emitter = [False, False]
         self.acquisition = False
+        self.allowed_antenna_ranges = [antenna_range]
+        self.antenna_range = antenna_range
         self.range = rng
         self.t_begin = t_begin
         self.avg = avg
@@ -152,10 +155,11 @@ class TeraFlash:
         logging.info("[INIT] setting up the device...")
         self.get_sys_status()
         self.get_sys_status()
+        self.allowed_antenna_ranges = self.extract_tia_sens(self.get_status())
         self.set_channel()
         self.set_mode()
         self.set_transmission()
-        self.set_antenna()
+        self.set_antenna_range(self.antenna_range)
         self.set_acq_begin(self.t_begin)
         self.set_acq_avg()
         self.set_acq_stop()
@@ -187,6 +191,23 @@ class TeraFlash:
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()
+
+    def extract_tia_sens(self, text: str) -> list[float] | None:
+        """
+        Extracts TIA-Sens(nA) values from the given string.
+        Returns a list of floats, or None if not found.
+        """
+        match = re.search(r"TIA-Sens\(nA\):\s*([0-9.,\s]+)", text)
+        if not match:
+            return None
+
+        values_str = match.group(1)
+        # Split by comma, trim, and convert to floats
+        values = [float(v.strip()) for v in values_str.split(",") if v.strip()]
+
+        logging.debug(f"[CMD] supported ranges: {values}")
+
+        return values
 
     def get_sys_monitor(self):
         """
@@ -233,12 +254,37 @@ class TeraFlash:
         self.cmd_ack.wait()
         self.cmd_ack.clear()
 
-    def set_antenna(self):
+    def set_antenna_range(self, range: float):
         """
-            sets the antenna mode. TBD if this can be adjusted or is fixed.
+            sets the antenna range by value (needs to be an allowed value of the instrument)
         """
-        logging.debug("[CMD] setting antenna: TIA ATN2")
-        cmd = (b'\x11', "SYSTEM : TIA ATN2")
+
+        i = self.allowed_antenna_ranges.index(range)
+
+        if i == 0:
+            string = "FULL"
+        else:
+            string = f"ATN{i}"
+
+        logging.debug(f"[CMD] setting antenna: TIA {string}")
+        cmd = (b'\x11', f"SYSTEM : TIA {string}")
+
+        self.cmd_queue.put(cmd)
+        self.cmd_ack.wait()
+        self.cmd_ack.clear()
+
+    def set_antenna_range_index(self, i):
+        """
+            sets the antenna range by index
+        """
+        if i == 0:
+            string = "FULL"
+        else:
+            string = f"ATN{i}"
+
+        logging.debug(f"[CMD] setting antenna: TIA {string}")
+        cmd = (b'\x11', f"SYSTEM : TIA {string}")
+
         self.cmd_queue.put(cmd)
         self.cmd_ack.wait()
         self.cmd_ack.clear()

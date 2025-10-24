@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Stöckli"
+  given-names: "Linus Leo"
+  orcid: "https://orcid.org/0000-0002-7916-2592"
+title: "TeraFlash Control Software"
+version: 3.0.0
+doi:
+date-released: 2024-11-02
+url: "https://github.com/hacknus/teraflash-ctrl"
