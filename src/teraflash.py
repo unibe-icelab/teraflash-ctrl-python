@@ -160,14 +160,9 @@ class TeraFlash:
 
         # wait for status to be available
         while self.get_status() is None:
-            print("[INIT] waiting for status...", self.get_status())
             time.sleep(1)
 
-        logging.info("[INIT] extracting TIA sensitivity ranges...")
         self.allowed_antenna_ranges = self.extract_tia_sens(self.get_status())
-        logging.info("[INIT] extracted TIA sensitivity ranges...")
-
-        exit()
         self.set_channel()
         self.set_mode()
         self.set_transmission()
