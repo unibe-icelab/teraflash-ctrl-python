@@ -2,7 +2,6 @@ import logging
 import queue
 import threading
 import time
-from typing import Optional
 import re
 
 import numpy as np
@@ -166,7 +165,6 @@ class TeraFlash:
         self.set_channel()
         self.set_mode()
         self.set_transmission()
-        print(self.allowed_antenna_ranges)
         self.set_antenna_range(self.antenna_range)
         self.set_acq_begin(self.t_begin)
         self.set_acq_avg()
@@ -200,21 +198,20 @@ class TeraFlash:
         self.cmd_ack.wait()
         self.cmd_ack.clear()
 
-    def extract_tia_sens(self, text: str) -> Optional[list[float]]:
+    def extract_tia_sens(self, text: str) -> list[float]:
         """
         Extracts TIA-Sens(nA) values from the given string.
         Returns a list of floats, or None if not found.
         """
-        print(text)
         match = re.search(r"TIA-Sens\(nA\):\s*([0-9.,\s]+)", text)
         if not match:
-            return None
+            logging.error(f"no supported ranges found: {text}")
+            return []
 
         values_str = match.group(1)
         # Split by comma, trim, and convert to floats
         values = [float(v.strip()) for v in values_str.split(",") if v.strip()]
-        print(values)
-        logging.debug(f"[CMD] supported ranges: {values}")
+        logging.debug(f"[OK] supported ranges: {values}")
 
         return values
 
@@ -267,8 +264,6 @@ class TeraFlash:
         """
             sets the antenna range by value (needs to be an allowed value of the instrument)
         """
-
-        print(self.allowed_antenna_ranges)
 
         i = self.allowed_antenna_ranges.index(range)
 
