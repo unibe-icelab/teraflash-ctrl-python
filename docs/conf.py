@@ -19,9 +19,9 @@ sys.path.insert(0, os.path.abspath('..'))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'teraflash-ctrl-python'
-copyright = '2023, Linus Leo Stöckli'
+copyright = '2025, Linus Leo Stöckli'
 author = 'Linus Leo Stöckli'
-release = '1.2.0'
+release = '1.3.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

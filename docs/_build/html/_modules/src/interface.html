@@ -141,6 +141,7 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">t_begin</span> <span class="o">=</span> <span class="mf">1000.00</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">range</span> <span class="o">=</span> <span class="mi">50</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">antenna_range</span> <span class="o">=</span> <span class="mf">1000.0</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">running</span> <span class="o">=</span> <span class="n">running</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">connected</span> <span class="o">=</span> <span class="n">connected</span>
@@ -232,7 +233,7 @@
                     <span class="n">client</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="n">message</span><span class="p">)</span>
                     <span class="k">if</span> <span class="n">b</span> <span class="o">==</span> <span class="sa">b</span><span class="s1">&#39;</span><span class="se">\x14</span><span class="s1">&#39;</span><span class="p">:</span>
                         <span class="c1"># if we request the status, save the response</span>
-                        <span class="n">status</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1024</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_header_len</span><span class="p">:]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span> <span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
+                        <span class="n">status</span> <span class="o">=</span> <span class="n">client</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">2048</span><span class="p">)[</span><span class="bp">self</span><span class="o">.</span><span class="n">read_header_len</span><span class="p">:]</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">,</span> <span class="s2">&quot;ignore&quot;</span><span class="p">)</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">cmd_ack</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
                     <span class="k">elif</span> <span class="s2">&quot;RANGE&quot;</span> <span class="ow">in</span> <span class="n">c</span><span class="p">:</span>
                         <span class="c1"># if we change the range, also change it for the data thread</span>
@@ -267,7 +268,7 @@
                         <span class="k">return</span>
                 <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.25</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="TopticaSocket.run_tcp_dat"><a class="viewcode-back" href="../../src.html#src.interface.TopticaSocket.run_tcp_dat">[docs]</a>    <span class="k">def</span> <span class="nf">run_tcp_dat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd_queue</span><span class="p">:</span> <span class="n">Queue</span><span class="p">):</span>
+<div class="viewcode-block" id="TopticaSocket.run_tcp_dat"><a class="viewcode-back" href="../../src.html#src.interface.TopticaSocket.run_tcp_dat">[docs]</a>    <span class="k">def</span> <span class="nf">run_tcp_dat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cmd_queue</span><span class="p">:</span> <span class="n">Queue</span><span class="p">,</span> <span class="n">config_queue</span><span class="p">:</span> <span class="n">Queue</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">            Data TCP thread on port 6342. This handles receives all the streamed data from the device and decodes it.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -277,6 +278,7 @@
             <span class="p">(</span><span class="s2">&quot;signal_1&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
             <span class="p">(</span><span class="s2">&quot;signal_2&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
         <span class="p">])</span>
+        <span class="n">antenna_range</span> <span class="o">=</span> <span class="mf">1000.0</span>
 
         <span class="k">with</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">(</span><span class="n">socket</span><span class="o">.</span><span class="n">AF_INET</span><span class="p">,</span> <span class="n">socket</span><span class="o">.</span><span class="n">SOCK_STREAM</span><span class="p">)</span> <span class="k">as</span> <span class="n">s</span><span class="p">:</span>
             <span class="c1"># Set the SO_REUSEADDR option to allow reuse of the port</span>
@@ -370,8 +372,14 @@
                     <span class="n">types</span> <span class="o">=</span> <span class="n">types</span><span class="o">.</span><span class="n">newbyteorder</span><span class="p">(</span><span class="s1">&#39;&gt;&#39;</span><span class="p">)</span>
                     <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">frombuffer</span><span class="p">(</span><span class="n">_data</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">types</span><span class="p">)</span>
 
-                    <span class="n">signal_1</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_1&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mf">20.0</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">16</span> <span class="o">-</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">20.0</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">16</span>
-                    <span class="n">signal_2</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_2&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="mf">20.0</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">16</span> <span class="o">-</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_2&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="mf">20.0</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">16</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">config_queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+                        <span class="n">antenna_range</span> <span class="o">=</span> <span class="n">config_queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+
+                    <span class="n">scale_factor</span> <span class="o">=</span> <span class="mf">20.0</span> <span class="o">*</span> <span class="mf">1000.0</span> <span class="o">/</span> <span class="n">antenna_range</span><span class="p">;</span>
+
+                    <span class="c1"># TODO: make subtracting offset optional.</span>
+                    <span class="n">signal_1</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_1&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">scale_factor</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">16</span> <span class="o">-</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_1&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">scale_factor</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">16</span>
+                    <span class="n">signal_2</span> <span class="o">=</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_2&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">scale_factor</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">16</span> <span class="o">-</span> <span class="n">arr</span><span class="p">[</span><span class="s1">&#39;signal_2&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">scale_factor</span> <span class="o">/</span> <span class="mi">2</span> <span class="o">**</span> <span class="mi">16</span>
 
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">avg_data</span><span class="o">.</span><span class="n">is_set</span><span class="p">():</span>
                         <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">signal_1</span><span class="o">.</span><span class="n">shape</span> <span class="o">==</span> <span class="n">signal_1</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>

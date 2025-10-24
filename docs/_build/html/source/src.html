@@ -4,7 +4,7 @@
   <meta charset="utf-8" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>src package &mdash; teraflash-ctrl-python 1.2.0 documentation</title>
+  <title>src package &mdash; teraflash-ctrl-python 1.3.0 documentation</title>
       <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
       <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
   <!--[if lt IE 9]>
@@ -114,7 +114,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="src.interface.TopticaSocket.run_tcp_dat">
-<span class="sig-name descname"><span class="pre">run_tcp_dat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd_queue</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Queue</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/interface.html#TopticaSocket.run_tcp_dat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.interface.TopticaSocket.run_tcp_dat" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">run_tcp_dat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cmd_queue</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Queue</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">config_queue</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Queue</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/interface.html#TopticaSocket.run_tcp_dat"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.interface.TopticaSocket.run_tcp_dat" title="Permalink to this definition"></a></dt>
 <dd><p>Data TCP thread on port 6342. This handles receives all the streamed data from the device and decodes it.</p>
 </dd></dl>
 
@@ -196,7 +196,7 @@
 <span id="src-teraflash-module"></span><h2>src.teraflash module<a class="headerlink" href="#module-src.teraflash" title="Permalink to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="src.teraflash.TeraFlash">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.teraflash.</span></span><span class="sig-name descname"><span class="pre">TeraFlash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'169.254.84.101'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_begin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">avg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/teraflash.html#TeraFlash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.teraflash.TeraFlash" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.teraflash.</span></span><span class="sig-name descname"><span class="pre">TeraFlash</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ip</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'169.254.84.101'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t_begin</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">antenna_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1000.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">avg</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">log_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/teraflash.html#TeraFlash"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.teraflash.TeraFlash" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="src.teraflash.TeraFlash.auto_pulse_detection">
@@ -222,6 +222,13 @@ Spectrometer needs to be running (laser, emitter, acq) before calling this</p>
 <dt class="sig sig-object py" id="src.teraflash.TeraFlash.disconnect">
 <span class="sig-name descname"><span class="pre">disconnect</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/teraflash.html#TeraFlash.disconnect"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.teraflash.TeraFlash.disconnect" title="Permalink to this definition"></a></dt>
 <dd><p>disconnects from the device, order of calls is important!</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.teraflash.TeraFlash.extract_tia_sens">
+<span class="sig-name descname"><span class="pre">extract_tia_sens</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">text</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/src/teraflash.html#TeraFlash.extract_tia_sens"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.teraflash.TeraFlash.extract_tia_sens" title="Permalink to this definition"></a></dt>
+<dd><p>Extracts TIA-Sens(nA) values from the given string.
+Returns a list of floats, or None if not found.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -329,9 +336,15 @@ available: 5, 10, 15, 20, 35, 50, 70, 100, 120, 150 or 200</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="src.teraflash.TeraFlash.set_antenna">
-<span class="sig-name descname"><span class="pre">set_antenna</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/teraflash.html#TeraFlash.set_antenna"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.teraflash.TeraFlash.set_antenna" title="Permalink to this definition"></a></dt>
-<dd><p>sets the antenna mode. TBD if this can be adjusted or is fixed.</p>
+<dt class="sig sig-object py" id="src.teraflash.TeraFlash.set_antenna_range">
+<span class="sig-name descname"><span class="pre">set_antenna_range</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">antenna_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/teraflash.html#TeraFlash.set_antenna_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.teraflash.TeraFlash.set_antenna_range" title="Permalink to this definition"></a></dt>
+<dd><p>sets the antenna range by value (needs to be an allowed value of the instrument)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.teraflash.TeraFlash.set_antenna_range_index">
+<span class="sig-name descname"><span class="pre">set_antenna_range_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/src/teraflash.html#TeraFlash.set_antenna_range_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#src.teraflash.TeraFlash.set_antenna_range_index" title="Permalink to this definition"></a></dt>
+<dd><p>sets the antenna range by index</p>
 </dd></dl>
 
 <dl class="py method">
@@ -430,7 +443,7 @@ by using wireshark on the official application</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2023, Linus Leo Stöckli.</p>
+    <p>&#169; Copyright 2025, Linus Leo Stöckli.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
