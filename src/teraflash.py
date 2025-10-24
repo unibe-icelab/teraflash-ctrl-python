@@ -264,15 +264,16 @@ class TeraFlash:
         self.cmd_ack.wait()
         self.cmd_ack.clear()
 
-    def set_antenna_range(self, range: float):
+    def set_antenna_range(self, antenna_range: float):
         """
             sets the antenna range by value (needs to be an allowed value of the instrument)
         """
+        antenna_range = float(antenna_range)
 
         print(self.allowed_antenna_ranges)
-        print(range)
-        i = self.allowed_antenna_ranges.index(str(range))
-        self.antenna_range = range
+        print(antenna_range)
+        i = self.allowed_antenna_ranges.index(str(antenna_range))
+        self.antenna_range = antenna_range
         self.config_queue.put(self.antenna_range)
 
         if i == 0:
