@@ -163,6 +163,8 @@ class TeraFlash:
             time.sleep(1)
 
         self.allowed_antenna_ranges = self.extract_tia_sens(self.get_status())
+
+        exit()
         self.set_channel()
         self.set_mode()
         self.set_transmission()
@@ -204,6 +206,7 @@ class TeraFlash:
         Extracts TIA-Sens(nA) values from the given string.
         Returns a list of floats, or None if not found.
         """
+        print(text)
         match = re.search(r"TIA-Sens\(nA\):\s*([0-9.,\s]+)", text)
         if not match:
             return None
@@ -211,7 +214,7 @@ class TeraFlash:
         values_str = match.group(1)
         # Split by comma, trim, and convert to floats
         values = [float(v.strip()) for v in values_str.split(",") if v.strip()]
-
+        print(values)
         logging.debug(f"[CMD] supported ranges: {values}")
 
         return values
