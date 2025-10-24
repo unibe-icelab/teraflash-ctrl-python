@@ -3,6 +3,7 @@ import queue
 import threading
 import time
 from typing import Optional
+import re
 
 import numpy as np
 import os
