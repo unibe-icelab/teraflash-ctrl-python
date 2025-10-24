@@ -166,6 +166,7 @@ class TeraFlash:
         self.set_channel()
         self.set_mode()
         self.set_transmission()
+        print(self.allowed_antenna_ranges)
         self.set_antenna_range(self.antenna_range)
         self.set_acq_begin(self.t_begin)
         self.set_acq_avg()
@@ -266,6 +267,8 @@ class TeraFlash:
         """
             sets the antenna range by value (needs to be an allowed value of the instrument)
         """
+
+        print(self.allowed_antenna_ranges)
 
         i = self.allowed_antenna_ranges.index(range)
 
