@@ -164,7 +164,7 @@ class TopticaSocket:
                     client.send(message)
                     if b == b'\x14':
                         # if we request the status, save the response
-                        status = client.recv(1024)[self.read_header_len:].decode("utf-8", "ignore")
+                        status = client.recv(2048)[self.read_header_len:].decode("utf-8", "ignore")
                         self.cmd_ack.set()
                     elif "RANGE" in c:
                         # if we change the range, also change it for the data thread
