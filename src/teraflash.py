@@ -204,12 +204,17 @@ class TeraFlash:
         Extracts TIA-Sens(nA) values from the given string.
         Returns a list of floats, or None if not found.
         """
+
+        print("Extracting TIA-Sens from status text:", text)
         match = re.search(r"TIA-Sens\(nA\):\s*([0-9.,\s]+)", text)
         if not match:
             logging.error(f"no supported ranges found: {text}")
             return []
 
         values_str = match.group(1)
+
+        print("Extracted TIA-Sens:", values_str)
+
         # Split by comma, trim, and convert to floats
         values = [str(float(v.strip())) for v in values_str.split(",") if v.strip()]
         logging.debug(f"[OK] supported ranges: {values}")
