@@ -163,7 +163,9 @@ class TeraFlash:
             print("[INIT] waiting for status...", self.get_status())
             time.sleep(1)
 
+        logging.info("[INIT] extracting TIA sensitivity ranges...")
         self.allowed_antenna_ranges = self.extract_tia_sens(self.get_status())
+        logging.info("[INIT] extracted TIA sensitivity ranges...")
 
         exit()
         self.set_channel()
