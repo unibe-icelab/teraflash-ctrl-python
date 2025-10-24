@@ -167,7 +167,7 @@ class TeraFlash:
         self.set_channel()
         self.set_mode()
         self.set_transmission()
-        self.set_antenna_range(self.antenna_range)
+        self.set_antenna_range_index(len(self.allowed_antenna_ranges) - 1)
         self.set_acq_begin(self.t_begin)
         self.set_acq_avg()
         self.set_acq_stop()
