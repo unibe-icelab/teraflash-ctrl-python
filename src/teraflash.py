@@ -197,7 +197,7 @@ class TeraFlash:
         self.cmd_ack.wait()
         self.cmd_ack.clear()
 
-    def extract_tia_sens(self, text: str) -> list[float] | None:
+    def extract_tia_sens(self, text: str) -> Optional[list[float]]:
         """
         Extracts TIA-Sens(nA) values from the given string.
         Returns a list of floats, or None if not found.
