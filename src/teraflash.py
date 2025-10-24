@@ -205,7 +205,6 @@ class TeraFlash:
         Returns a list of floats, or None if not found.
         """
 
-        print("Extracting TIA-Sens from status text:", text)
         match = re.search(r"TIA-Sens\(nA\):\s*([0-9.,\s]+)", text)
         if not match:
             logging.error(f"no supported ranges found: {text}")

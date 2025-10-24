@@ -184,15 +184,6 @@ class TopticaSocket:
                         if not self.wait_for_answer(client):
                             return
                         self.cmd_ack.set()
-                    elif "TIA" in c:
-                        # if we change the range, also change it for the data thread
-                        parts = c.split(" ")
-                        self.t_begin = float(parts[-1])
-                        data.time = np.linspace(self.t_begin, self.t_begin + self.range, 20 * int(self.range) + 1)
-                        # wait for acknowledge
-                        if not self.wait_for_answer(client):
-                            return
-                        self.cmd_ack.set()
                     else:
                         # wait for acknowledge
                         if not self.wait_for_answer(client):
