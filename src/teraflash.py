@@ -155,6 +155,11 @@ class TeraFlash:
         logging.info("[INIT] setting up the device...")
         self.get_sys_status()
         self.get_sys_status()
+
+        # wait for status to be available
+        while self.get_status() is None:
+            time.sleep(1)
+
         self.allowed_antenna_ranges = self.extract_tia_sens(self.get_status())
         self.set_channel()
         self.set_mode()
