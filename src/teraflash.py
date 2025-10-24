@@ -211,7 +211,7 @@ class TeraFlash:
 
         values_str = match.group(1)
         # Split by comma, trim, and convert to floats
-        values = [v.strip() for v in values_str.split(",") if v.strip()]
+        values = [str(float(v.strip())) for v in values_str.split(",") if v.strip()]
         logging.debug(f"[OK] supported ranges: {values}")
 
         return values
