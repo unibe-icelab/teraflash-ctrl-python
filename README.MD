@@ -1,6 +1,6 @@
 # TeraFlash Pro Python Package
 
-<a href="https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/releases"><img src="icons/icon.png" alt=“” width="100" height="100"> </img> </a>
+<a href="https://github.com/unibe-icelab/teraflash-ctrl-python/releases"><img src="icons/icon.png" alt=“” width="100" height="100"> </img> </a>
 
 This code is developed by the University of Bern and is no official product of Toptica Photonics AG.  
 This Python Package allows the configuration and readout of the TeraFlash Pro THz spectrometer.  
@@ -8,7 +8,7 @@ The TCP communication protocol is probably incomplete and features may be missin
 wireshark. The scanning stage is not supported but a list of other features is.
 
 This is a simple library with no persistence settings (the configurations of the previous run will not be stored when the python session is closed).
-A complete GUI written in Rust is also available [here](https://spacegit.unibe.ch/teraflash/teraflash-ctrl).
+A complete GUI written in Rust is also available [here](https://github.com/unibe-icelab/teraflash-ctrl).
 
 Features:  
 - [x] Select begin time for the time window
@@ -27,7 +27,7 @@ Features:
 - [ ] ...
 
 ## I. Installation
-Download the [latest release](https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/releases) or the [current state](https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/archive/main/teraflash-ctrl-python-main.zip)
+Download the [latest release](https://github.com/unibe-icelab/teraflash-ctrl-python/releases) or the [current state](https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/archive/main/teraflash-ctrl-python-main.zip)
 as a zip archive, move it into your working directory and then run:
 ```shell
 pip install teraflash-ctrl-python-v1.3.0.zip
@@ -61,4 +61,12 @@ Consult the [`example.py`](example.py) for usage.
   
 _Disclaimer: This package is provided on a best effort basis with no guarantee as to the functionality and correctness. Use at your
 own risk.
-Users are encouraged to contribute by submitting [issues](https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/issues) and/or [merge requests](https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/merge_requests) for bug reporting or feature requests._
+Users are encouraged to contribute by submitting [issues](https://github.com/unibe-icelab/teraflash-ctrl-python/issues) and/or [pull requests](https://github.com/unibe-icelab/teraflash-ctrl-python/pulls) for bug reporting or feature requests._
+
+
+Copyright (c) 2026 Linus Leo Stöckli
+
+This work is licensed under the Creative Commons
+Attribution-NonCommercial 4.0 International License.
+To view a copy of this license, visit
+https://creativecommons.org/licenses/by-nc/4.0/
