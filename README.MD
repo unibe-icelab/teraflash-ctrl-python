@@ -27,10 +27,10 @@ Features:
 - [ ] ...
 
 ## I. Installation
-Download the [latest release](https://github.com/unibe-icelab/teraflash-ctrl-python/releases) or the [current state](https://spacegit.unibe.ch/teraflash/teraflash-ctrl-python/-/archive/main/teraflash-ctrl-python-main.zip)
+Download the [latest release](https://github.com/unibe-icelab/teraflash-ctrl-python/releases) or the [current state](https://github.com/unibe-icelab/teraflash-ctrl-python/archive/refs/heads/main.zip)
 as a zip archive, move it into your working directory and then run:
 ```shell
-pip install teraflash-ctrl-python-v1.3.0.zip
+pip install teraflash-ctrl-python-v1.4.0.zip
 ```
 for the latest version or
 ```shell
