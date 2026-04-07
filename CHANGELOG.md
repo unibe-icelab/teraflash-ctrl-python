@@ -6,6 +6,14 @@ All notable changes to the `teraflash-ctrl-python` project will be documented in
 
 * ...
 
+# 1.4.3
+
+* fix case of filename suffixes
+
+# 1.4.2
+
+* fix readme install instructions
+
 # 1.4.1
 
 * Bump to 1.4.1 to test deployment from GitHub Actions
