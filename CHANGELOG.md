@@ -6,6 +6,11 @@ All notable changes to the `teraflash-ctrl-python` project will be documented in
 
 * ...
 
+# 1.4.1
+
+* Bump to 1.4.1 to test deployment from GitHub Actions
+* Rename package to `teraflash-ctrl`.
+
 # 1.4.0
 
 * migrate to GitHub, add License
