@@ -6,3 +6,5 @@ __pycache__/
 
 # Optionally, ignore egg files
 *.egg
+/dist/
+/build/

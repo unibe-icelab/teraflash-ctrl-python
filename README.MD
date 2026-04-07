@@ -1,6 +1,11 @@
 # TeraFlash Pro Python Package
 
-<a href="https://github.com/unibe-icelab/teraflash-ctrl-python/releases"><img src="icons/icon.png" alt=“” width="100" height="100"> </img> </a>
+[![PEP8](https://github.com/unibe-icelab/teraflash-ctrl-python/actions/workflows/format.yml/badge.svg)](https://github.com/unibe-icelab/teraflash-ctrl-python/actions/workflows/format.yml)
+[![PyPI](https://img.shields.io/pypi/v/teraflash-ctrl?label=pypi%20package)](https://pypi.org/project/teraflash-ctrl/)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/teraflash-ctrl)](https://pypi.org/project/teraflash-ctrl/)
+
+
+<a href="https://github.com/unibe-icelab/teraflash-ctrl-python/releases"><img src="https://raw.githubusercontent.com/unibe-icelab/teraflash-ctrl-python/refs/heads/main/icons/icon.png" alt=“” width="100" height="100"> </img> </a>
 
 This code is developed by the University of Bern and is no official product of Toptica Photonics AG.  
 This Python Package allows the configuration and readout of the TeraFlash Pro THz spectrometer.  
