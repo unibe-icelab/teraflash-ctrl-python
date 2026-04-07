@@ -32,16 +32,10 @@ Features:
 - [ ] ...
 
 ## I. Installation
-Download the [latest release](https://github.com/unibe-icelab/teraflash-ctrl-python/releases) or the [current state](https://github.com/unibe-icelab/teraflash-ctrl-python/archive/refs/heads/main.zip)
-as a zip archive, move it into your working directory and then run:
+Download from PyPi:
 ```shell
-pip install teraflash-ctrl-python-v1.4.0.zip
+pip install teraflash-ctrl
 ```
-for the latest version or
-```shell
-pip install teraflash-ctrl-python-main.zip
-```
-for the current state of the main branch to install the package for your virtual python environment or system-wide.
 
 ## II. Taking a measurement
 When connected to the device, you can turn on the laser and then the emitter.
